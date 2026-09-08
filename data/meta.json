@@ -1,5 +1,5 @@
 {
-  "demo": true,
+  "demo": false,
   "site": {
     "title": "微积分 · 作业查分台",
     "courseName": "《微积分（上）》",
@@ -26,7 +26,7 @@
     },
     {
       "slug": "midterm-review",
-      "title": "期中考试讲解",
+      "title": "其它",
       "published": false
     }
   ],
@@ -35,10 +35,10 @@
       "slug": "hw01",
       "title": "第一次作业：函数与极限",
       "content": {
-        "published": true
+        "published": false
       },
       "answer": {
-        "published": true,
+        "published": false,
         "requiresSubmission": false
       }
     },

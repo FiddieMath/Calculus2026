@@ -38,6 +38,13 @@
       if (delim === null) delim = detectDelimiter(line);
       const cells = splitRow(line, delim);
       if (cells.length && cells.some(function (c) { return c !== ""; })) {
+        if (
+          cells[0] === "学号" &&
+          cells.length >= 2 &&
+          /姓名|状态/.test(cells[1])
+        ) {
+          continue; // 跳过表头行
+        }
         rows.push(cells);
       }
     }
