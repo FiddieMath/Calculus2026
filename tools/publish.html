@@ -164,8 +164,10 @@
       <h2>发布后还需要做什么</h2>
       <ol class="tips">
         <li>把下载的 <code>records.json</code> 覆盖到网站仓库的 <code>data/records.json</code>。</li>
-        <li>把新作业加进 <code>data/meta.json</code> 的 <code>assignments</code>（公告与截止日期也在这里改）。</li>
+        <li>把新作业加进 <code>data/meta.json</code> 的 <code>assignments</code>（标题与截止日期也在这里改）。</li>
+        <li>发布题目时，把题目放到 <code>problems/hw04.md</code>，并把该作业的 <code>content.published</code> 改为 <code>true</code>。</li>
         <li>参考答案写好后放到 <code>answers/hw04.md</code>，并把该作业的 <code>answer.published</code> 改为 <code>true</code>，再 push 到 GitHub。</li>
+        <li>附加资料（如期中讲解）放在 <code>materials/</code>，并在 <code>meta.json</code> 的 <code>materials</code> 中登记。</li>
         <li>把更新后的 <code>classbook.json</code> 保存回你自己的私有目录，继续当台账使用。</li>
       </ol>
       <p class="small">提示：手动维护麻烦时，也可以把成绩 CSV 与答案直接交给 Codex，让它运行 <code>scripts/publish-cli.cjs</code> 并提交仓库。</p>

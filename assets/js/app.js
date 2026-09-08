@@ -1,19 +1,18 @@
 /*!
- * app.js —— 微积分作业查分台（学生端）
- * 视图：首页 / 我的完成情况 / 参考答案
+ * app.js —— 微积分作业查分台（简约版）
+ * 主页：学号查询（弹窗显示完成情况）+ 作业安排表 + 附加资料表
  */
 (function () {
   "use strict";
 
   var META_URL = "data/meta.json";
   var RECORDS_URL = "data/records.json";
-  var SESSION_KEY = "calc-session-v1";
+  var SESSION_KEY = "calc-session-v2";
 
   var state = {
     meta: null,
     records: null,
-    session: null,
-    activeAnswer: null
+    session: null
   };
 
   var STATUS_TEXT = {
@@ -46,7 +45,6 @@
       .replace(/"/g, "&quot;")
       .replace(/'/g, "&#39;");
   }
-
   function fetchJSON(url) {
     return fetch(url, { cache: "no-store" }).then(function (res) {
       if (!res.ok) throw new Error("HTTP " + res.status);
@@ -54,52 +52,26 @@
     });
   }
 
-  var toastTimer = null;
-  function toast(msg, ms) {
-    var el = $("#toast");
-    el.textContent = msg;
-    el.hidden = false;
-    if (toastTimer) clearTimeout(toastTimer);
-    toastTimer = setTimeout(function () {
-      el.hidden = true;
-    }, ms || 3200);
-  }
-
-  function fmtDate(iso, withTime) {
+  function fmtDate(iso) {
     if (!iso) return "";
     try {
-      var d = new Date(iso);
       return new Intl.DateTimeFormat("zh-CN", {
-        month: "long",
+        month: "numeric",
         day: "numeric",
-        hour: withTime ? "2-digit" : undefined,
-        minute: withTime ? "2-digit" : undefined,
+        hour: "2-digit",
+        minute: "2-digit",
         hour12: false
-      }).format(d);
+      }).format(new Date(iso));
     } catch (e) {
-      return iso;
+      return String(iso);
     }
   }
-
-  function fmtDue(iso) {
-    if (!iso) return "";
-    var d = new Date(iso);
-    var diffDays = Math.ceil((d.getTime() - Date.now()) / 86400000);
-    var base = "截止 " + fmtDate(iso, true);
-    if (diffDays < 0) return base + "（已截止）";
-    if (diffDays === 0) return base + "（今天截止）";
-    if (diffDays === 1) return base + "（明天截止）";
-    return base;
-  }
-
-  function slugLabel(slug) {
-    return String(slug || "").toUpperCase();
+  function isOverdue(iso) {
+    return iso ? new Date(iso).getTime() < Date.now() : false;
   }
 
   function saveSession(payload) {
-    try {
-      sessionStorage.setItem(SESSION_KEY, JSON.stringify(payload));
-    } catch (e) { /* ignore */ }
+    try { sessionStorage.setItem(SESSION_KEY, JSON.stringify(payload)); } catch (e) { /* ignore */ }
   }
   function loadSession() {
     try {
@@ -110,91 +82,9 @@
     }
   }
   function clearSession() {
-    try {
-      sessionStorage.removeItem(SESSION_KEY);
-    } catch (e) { /* ignore */ }
+    try { sessionStorage.removeItem(SESSION_KEY); } catch (e) { /* ignore */ }
   }
 
-  /* ---------------- 首页 ---------------- */
-  function renderHeader() {
-    var site = state.meta.site || {};
-    document.title = site.title || "微积分 · 作业查分台";
-    $("#site-title").textContent = site.title || "微积分 · 作业查分台";
-    $("#site-sub").textContent =
-      (site.courseName || "") + " · " + (site.teacher || "") + " · " + (site.semester || "");
-    $("#hero-eyebrow").textContent = site.courseName || "你好，欢迎打开作业本";
-    if (site.shortNote) $("#hero-note").textContent = site.shortNote;
-    $("#policy-note").textContent = site.policyNote || "";
-    $("#footer-contact").textContent =
-      "如有问题请联系任课老师：" + (site.contact || "");
-
-    var demo = state.meta.demo;
-    var banner = $("#demo-banner");
-    banner.hidden = !demo;
-    $("#demo-hint").hidden = !demo;
-    if (demo) {
-      banner.innerHTML =
-        "<strong>演示模式</strong><span>学号 <code>20260001</code> · 查询码 <code>20260001</code>（正式启用时老师会关闭演示）</span>";
-    }
-  }
-
-  function renderHomeAnnouncements() {
-    var box = $("#home-announcements");
-    var list = (state.meta.announcements || []).slice().reverse();
-    if (!list.length) {
-      box.innerHTML = '<p class="announce-body">暂无公告。</p>';
-      return;
-    }
-    box.innerHTML = list
-      .map(function (a) {
-        return (
-          '<div class="announce-item">' +
-          '<div class="announce-title"><span>' + esc(a.title) + "</span>" +
-          '<span class="announce-date">' + esc(fmtDate(a.date)) + "</span></div>" +
-          (a.body ? '<p class="announce-body">' + esc(a.body) + "</p>" : "") +
-          "</div>"
-        );
-      })
-      .join("");
-  }
-
-  function renderHomeAssignments() {
-    var box = $("#home-assignments");
-    var list = state.meta.assignments || [];
-    if (!list.length) {
-      box.innerHTML = '<p class="announce-body">作业安排即将发布。</p>';
-      return;
-    }
-    box.innerHTML = list
-      .map(function (a) {
-        var published = a.answer && a.answer.published;
-        var due = a.due ? new Date(a.due) : null;
-        var overdue = due && due.getTime() < Date.now();
-        var titleHtml = published
-          ? '<a href="#/answers/' + encodeURIComponent(a.slug) + '">' + esc(a.title) + "</a>"
-          : esc(a.title);
-        var topics = (a.topics || []).join(" · ");
-        return (
-          '<div class="mini-row">' +
-          '<div class="mini-index">' + esc(slugLabel(a.slug)) + "</div>" +
-          "<div>" +
-          '<div class="mini-title">' + titleHtml + "</div>" +
-          '<div class="mini-meta">' + esc(topics) + "</div>" +
-          '<div class="mini-due">' + esc(fmtDue(a.due)) + "</div>" +
-          "</div>" +
-          '<div style="text-align:right">' +
-          '<span class="pill ' + (published ? "pill-on" : "pill-off") + '">' +
-          (published ? "参考答案已公布" : "参考答案未公布") +
-          "</span>" +
-          (overdue ? ' <span class="pill pill-done">已截止</span>' : ' <span class="pill pill-due">进行中</span>') +
-          "</div>" +
-          "</div>"
-        );
-      })
-      .join("");
-  }
-
-  /* ---------------- 登录 / 我的记录 ---------------- */
   function getRecordBySid(sid) {
     var list = state.records.records || [];
     for (var i = 0; i < list.length; i++) {
@@ -203,137 +93,78 @@
     return null;
   }
 
-  function showLogin() {
-    $("#login-card").hidden = false;
-    $("#me-content").hidden = true;
+  /* ---------- 头部与主页表格 ---------- */
+  function renderHeader() {
+    var site = state.meta.site || {};
+    document.title = site.title || "微积分 · 作业查分台";
+    $("#site-title").textContent = site.title || "微积分 · 作业查分台";
+    $("#site-sub").textContent =
+      (site.courseName || "") + " · " + (site.teacher || "") + " · " + (site.semester || "");
+    $("#footer-contact").textContent = "如有问题请联系任课老师：" + (site.contact || "");
+
+    var demo = !!state.meta.demo;
+    var banner = $("#demo-banner");
+    banner.hidden = !demo;
+    if (demo) {
+      banner.innerHTML =
+        "演示模式：学号 <code>20260001</code> · 查询码 <code>20260001</code>";
+    }
+    updateWhoami();
   }
 
-  function renderMeView() {
+  function updateWhoami() {
+    var el = $("#whoami");
     if (!state.session) {
-      showLogin();
+      el.hidden = true;
       return;
     }
-    $("#login-card").hidden = true;
-    $("#me-content").hidden = false;
-
-    var p = state.session;
-    $("#me-name-line").textContent = p.name + " · 学号 " + p.sid;
-    $("#me-title-line").textContent = p.name + " 同学的作业记录";
-
-    var list = state.meta.assignments || [];
-    var graded = [];
-    var submitted = 0;
-    list.forEach(function (a) {
-      var rec = (p.assignments || {})[a.slug];
-      if (!rec) return;
-      if (SUBMITTED_SET[rec.status]) submitted++;
-      if (rec.status === "graded" || rec.status === "late_graded") graded.push(rec);
-    });
-    var avgPct = null;
-    var sumPct = 0;
-    graded.forEach(function (g) {
-      var max = typeof g.max === "number" ? g.max : 100;
-      if (typeof g.score === "number") sumPct += (g.score / max) * 100;
-    });
-    if (graded.length) avgPct = Math.round(sumPct / graded.length);
-
-    var stats = [
-      { num: list.length, label: "作业总数", cls: "" },
-      { num: submitted, label: "已提交", cls: "amber" },
-      { num: graded.length, label: "已批改", cls: "green" },
-      { num: avgPct === null ? "—" : avgPct, label: "平均分（百分制）", cls: "" }
-    ];
-    $("#me-stats").innerHTML = stats
-      .map(function (s) {
-        return (
-          '<div class="stat-item ' + s.cls + '">' +
-          '<span class="stat-num">' + esc(s.num) + "</span>" +
-          '<span class="stat-label">' + esc(s.label) + "</span></div>"
-        );
-      })
-      .join("");
-
-    var rowsHtml = list
-      .map(function (a, idx) {
-        var rec = (p.assignments || {})[a.slug] || { status: "missing" };
-        var st = STATUS_TEXT[rec.status] || rec.status || "未交";
-        var stCls = STATUS_CLASS[rec.status] || "st-missing";
-        var published = a.answer && a.answer.published;
-        var showAnswer = published
-          ? '<a class="btn btn-ghost btn-sm" href="#/answers/' + encodeURIComponent(a.slug) + '">参考答案</a>'
-          : "";
-        var hasScore = (rec.status === "graded" || rec.status === "late_graded") &&
-          typeof rec.score === "number";
-        var scoreHtml;
-        if (hasScore) {
-          var maxTxt = typeof rec.max === "number" ? " / " + rec.max : "";
-          scoreHtml =
-            '<div class="seal ' + (rec.status === "late_graded" ? "seal-late-graded" : "seal-graded") + '">' +
-            '<span class="seal-score">' + esc(rec.score) + "</span>" +
-            '<span class="seal-max">' + esc(maxTxt.replace(" / ", "满分 ")) + "</span></div>";
-        } else {
-          scoreHtml = '<span class="no-score">—</span>';
-        }
-        var hasComment = rec.comment && rec.comment.trim();
-        var actions = "";
-        if (hasComment) {
-          actions +=
-            '<button class="link-btn toggle-comment" type="button" data-row="' + idx + '">查看批注</button>';
-        }
-        if (showAnswer) actions += showAnswer;
-
-        return (
-          '<div class="record-row" style="--i:' + idx + '">' +
-          '<div class="rr-index">' + esc(slugLabel(a.slug)) + "</div>" +
-          "<div>" +
-          '<div class="rr-title">' + esc(a.title) + "</div>" +
-          '<div class="rr-sub">' + esc(fmtDue(a.due)) + "</div>" +
-          "</div>" +
-          '<div class="rr-status"><span class="stamp ' + stCls + '">' + esc(st) + "</span></div>" +
-          '<div class="rr-score">' + scoreHtml + "</div>" +
-          '<div class="rr-actions">' + actions + "</div>" +
-          (hasComment
-            ? '<div class="record-comment" id="comment-' + idx + '" hidden><b>老师批注：</b>' +
-              esc(rec.comment) + "</div>"
-            : "") +
-          "</div>"
-        );
-      })
-      .join("");
-
-    var emptyNote =
-      '<p class="announce-body" style="margin:10px 0">这里还没有作业记录。老师发布批改结果后，刷新本页即可看到。</p>';
-    $("#me-record-list").innerHTML = list.length ? rowsHtml : emptyNote;
-  }
-
-  function bindMeEvents() {
-    $("#login-form").addEventListener("submit", onLogin);
-    $("#btn-logout").addEventListener("click", function () {
+    el.hidden = false;
+    el.innerHTML =
+      "当前：<b>" + esc(state.session.name) + "</b>（" + esc(state.session.sid) + "）" +
+      ' <button type="button" id="logout-btn">退出</button>';
+    var btn = $("#logout-btn");
+    if (btn) btn.addEventListener("click", function () {
       state.session = null;
       clearSession();
-      showLogin();
-      $("#login-sid").focus();
-      toast("已退出登录");
-    });
-    $("#btn-print").addEventListener("click", function () {
-      window.print();
-    });
-    $("#demo-hint").addEventListener("click", function () {
-      $("#login-sid").value = "20260001";
-      $("#login-code").value = "20260001";
-      $("#login-code").focus();
-    });
-    $("#me-record-list").addEventListener("click", function (ev) {
-      var btn = ev.target.closest(".toggle-comment");
-      if (!btn) return;
-      var row = btn.getAttribute("data-row");
-      var box = document.getElementById("comment-" + row);
-      if (!box) return;
-      box.hidden = !box.hidden;
-      btn.textContent = box.hidden ? "查看批注" : "收起批注";
+      updateWhoami();
     });
   }
 
+  function renderHomeTables() {
+    var list = state.meta.assignments || [];
+    $("#assign-rows").innerHTML = list.length
+      ? list.map(function (a, i) {
+          var tags = "";
+          if (a.content && a.content.published) tags += '<span class="tag tag-on">题目已更新</span>';
+          if (a.answer && a.answer.published) tags += '<span class="tag tag-on">答案已更新</span>';
+          if (!tags) tags = '<span class="tag">待更新</span>';
+          var dueTag = isOverdue(a.due) ? '<span class="tag">已截止</span>' : "";
+          return (
+            '<tr>' +
+            '<td class="num">第 ' + (i + 1) + " 次</td>" +
+            '<td class="num">' + esc(fmtDate(a.due)) + " " + dueTag + "</td>" +
+            '<td><a href="#/work/' + encodeURIComponent(a.slug) + '">' + esc(a.title) + "</a>" + tags + "</td>" +
+            "</tr>"
+          );
+        }).join("")
+      : '<tr><td colspan="3" class="empty">作业安排将在开学后公布。</td></tr>';
+
+    var mats = state.meta.materials || [];
+    $("#material-rows").innerHTML = mats.length
+      ? mats.map(function (m) {
+          var published = m.published;
+          var name = published
+            ? '<a href="#/material/' + encodeURIComponent(m.slug) + '">' + esc(m.title) + "</a>"
+            : esc(m.title);
+          var tag = published
+            ? '<span class="tag tag-on">可阅读</span>'
+            : '<span class="tag">筹备中</span>';
+          return "<tr><td>" + name + "</td><td>" + tag + "</td></tr>";
+        }).join("")
+      : '<tr><td colspan="2" class="empty">暂无资料，将陆续添加（如期中考试讲解等）。</td></tr>';
+  }
+
+  /* ---------- 登录 ---------- */
   async function onLogin(ev) {
     ev.preventDefault();
     var errBox = $("#login-error");
@@ -345,9 +176,9 @@
       errBox.hidden = false;
       return;
     }
-    var submitBtn = $('button[type="submit"]', ev.target);
-    submitBtn.disabled = true;
-    submitBtn.textContent = "正在核对…";
+    var btn = $('button[type="submit"]', ev.target);
+    btn.disabled = true;
+    btn.textContent = "查询中…";
     try {
       var rec = getRecordBySid(sid);
       if (!rec) throw new Error("not found");
@@ -355,158 +186,195 @@
       if (!payload || payload.sid !== sid) throw new Error("bad");
       state.session = payload;
       saveSession(payload);
-      renderMeView();
-      toast("登录成功，" + payload.name + " 同学");
+      updateWhoami();
+      openStatusModal();
     } catch (e) {
-      errBox.textContent = "学号或查询码不正确，请重新输入。若查询码遗失，请联系老师。";
+      errBox.textContent = "学号或查询码不正确，请重新输入；忘记查询码请联系老师。";
       errBox.hidden = false;
       $("#login-code").select();
     } finally {
-      submitBtn.disabled = false;
-      submitBtn.textContent = "查 询";
+      btn.disabled = false;
+      btn.textContent = "查询";
     }
   }
 
-  /* ---------------- 参考答案 ---------------- */
-  function publishedAssignments() {
-    return (state.meta.assignments || []).filter(function (a) {
-      return a.answer && a.answer.published;
-    });
+  function openStatusModal() {
+    var p = state.session;
+    if (!p) return;
+    $("#modal-note").textContent = p.name + " · 学号 " + p.sid;
+    var list = state.meta.assignments || [];
+    $("#status-rows").innerHTML = list.length
+      ? list.map(function (a, i) {
+          var rec = (p.assignments || {})[a.slug] || { status: "missing" };
+          var st = STATUS_TEXT[rec.status] || rec.status || "未交";
+          var stCls = STATUS_CLASS[rec.status] || "st-missing";
+          var hasScore =
+            (rec.status === "graded" || rec.status === "late_graded") &&
+            typeof rec.score === "number";
+          var score = hasScore
+            ? esc(rec.score) + (typeof rec.max === "number" ? " / " + esc(rec.max) : "")
+            : "—";
+          var comment = rec.comment && rec.comment.trim() ? esc(rec.comment) : "—";
+          return (
+            "<tr>" +
+            '<td class="num">第 ' + (i + 1) + " 次</td>" +
+            '<td class="num">' + esc(fmtDate(a.due)) + (isOverdue(a.due) ? ' <span class="tag">已截止</span>' : "") + "</td>" +
+            '<td><span class="' + stCls + '"><span class="st-dot"></span>' + esc(st) + "</span></td>" +
+            '<td class="score">' + score + "</td>" +
+            '<td class="comment-cell">' + comment + "</td>" +
+            "</tr>"
+          );
+        }).join("")
+      : '<tr><td colspan="5" class="empty">暂无作业记录。</td></tr>';
+    $("#status-modal").hidden = false;
+    document.body.style.overflow = "hidden";
   }
 
-  function renderAnswerTabs(activeSlug) {
-    var list = publishedAssignments();
-    var tabs = $("#answer-tabs");
-    tabs.innerHTML = list
-      .map(function (a) {
-        return (
-          '<button class="answer-tab ' + (a.slug === activeSlug ? "active" : "") +
-          '" type="button" data-slug="' + esc(a.slug) + '">' + esc(slugLabel(a.slug)) + "</button>"
-        );
-      })
-      .join("");
-    $$(".answer-tab", tabs).forEach(function (btn) {
-      btn.addEventListener("click", function () {
-        var slug = btn.getAttribute("data-slug");
-        location.hash = "#/answers/" + encodeURIComponent(slug);
-      });
-    });
+  function closeStatusModal() {
+    $("#status-modal").hidden = true;
+    document.body.style.overflow = "";
   }
 
-  function renderAnswersView(param) {
-    var list = publishedAssignments();
-    var policy = $("#answer-policy");
-    policy.textContent =
-      (state.meta.site && state.meta.site.policyNote) ||
-      "参考答案在批改完成后按老师安排公布。";
+  /* ---------- 路由 ---------- */
+  function currentRoute() {
+    var raw = location.hash.replace(/^#\/?/, "");
+    var parts = raw.split("/").filter(Boolean);
+    return {
+      name: parts[0] || "home",
+      param: parts[1] ? decodeURIComponent(parts[1]) : null
+    };
+  }
 
-    if (!list.length) {
-      renderAnswerTabs(null);
-      $("#answer-content").hidden = true;
-      showGate("暂无已公布的参考答案", "答案将在对应作业截止、批改完成后陆续发布，请留意首页公告。", false);
+  function findAssignment(slug) {
+    var list = state.meta.assignments || [];
+    for (var i = 0; i < list.length; i++) {
+      if (list[i].slug === slug) return list[i];
+    }
+    return null;
+  }
+
+  function route() {
+    var r = currentRoute();
+    var home = $("#view-home");
+    var work = $("#view-assignment");
+    var mat = $("#view-material");
+    home.hidden = true;
+    work.hidden = true;
+    mat.hidden = true;
+
+    if (r.name === "work" && r.param) {
+      loadWork(r.param);
+    } else if (r.name === "material" && r.param) {
+      loadMaterial(r.param);
+    } else {
+      if (location.hash && location.hash !== "#/home") location.hash = "#/home";
+      home.hidden = false;
+      renderHomeTables();
+    }
+  }
+
+  /* ---------- 作业详情 ---------- */
+  function noteHtml(text) {
+    return '<p class="empty-note">' + esc(text) + "</p>";
+  }
+
+  async function loadWork(slug) {
+    var a = findAssignment(slug);
+    var work = $("#view-assignment");
+    var home = $("#view-home");
+    home.hidden = true;
+    work.hidden = false;
+
+    if (!a) {
+      $("#work-title").textContent = "未找到该作业";
+      $("#work-due").textContent = "";
+      $("#work-content").innerHTML = noteHtml("该作业不存在，请返回作业安排。");
+      $("#work-answer").innerHTML = "";
       return;
     }
-    if (param) {
-      var all = state.meta.assignments || [];
-      var known = null;
-      for (var k = 0; k < all.length; k++) {
-        if (all[k].slug === param) known = all[k];
+    $("#work-title").textContent = a.title;
+    $("#work-due").textContent =
+      "截止时间：" + fmtDate(a.due) + (isOverdue(a.due) ? "（已截止）" : "");
+
+    var contentBox = $("#work-content");
+    var answerBox = $("#work-answer");
+    contentBox.innerHTML = "";
+    answerBox.innerHTML = "";
+
+    if (a.content && a.content.published) {
+      try {
+        var res = await fetch("problems/" + encodeURIComponent(a.slug) + ".md", { cache: "no-store" });
+        if (!res.ok) throw new Error("missing");
+        contentBox.innerHTML = renderMarkdown(await res.text());
+      } catch (e) {
+        contentBox.innerHTML = noteHtml("题目页面正在更新，请稍后再来查看。");
       }
-      if (known && !(known.answer && known.answer.published)) {
-        renderAnswerTabs(null);
-        showGate("该作业的参考答案尚未公布", "老师会在批改完成后发布。公布后本页会自动出现该作业。", false);
+    } else {
+      contentBox.innerHTML = noteHtml("本次作业已布置，题目与要求将在此页面更新，请留意。");
+    }
+
+    var ansTitle = '<h2 style="margin-top:0">参考答案</h2>';
+    if (a.answer && a.answer.published) {
+      var needsSubmit = a.answer.requiresSubmission;
+      var rec = state.session && (state.session.assignments || {})[a.slug];
+      var submitted = !!(rec && SUBMITTED_SET[rec.status]);
+      if (needsSubmit && !submitted) {
+        answerBox.innerHTML =
+          ansTitle +
+          noteHtml(
+            state.session
+              ? "老师设置了“提交作业后才能查看参考答案”。提交记录更新后即可查看。"
+              : "老师设置了“提交作业后才能查看参考答案”，请先返回主页登录。"
+          );
         return;
       }
-    }
-    var target = null;
-    for (var i = 0; i < list.length; i++) {
-      if (list[i].slug === param) target = list[i];
-    }
-    if (!target) target = list[0];
-    renderAnswerTabs(target.slug);
-    loadAnswer(target);
-  }
-
-  function showGate(title, body, showLoginBtn) {
-    var gate = $("#answer-gate");
-    $("#answer-content").hidden = true;
-    gate.hidden = false;
-    gate.innerHTML =
-      '<div class="gate-icon">锁</div>' +
-      "<h3>" + esc(title) + "</h3>" +
-      "<p>" + esc(body) + "</p>" +
-      (showLoginBtn
-        ? '<p style="margin-top:16px"><a class="btn btn-primary" href="#/me">登录我的账号</a></p>'
-        : "");
-  }
-
-  async function loadAnswer(a) {
-    var gate = $("#answer-gate");
-    var content = $("#answer-content");
-    gate.hidden = true;
-    content.hidden = true;
-
-    var needsSubmit = a.answer.requiresSubmission;
-    var rec = state.session && (state.session.assignments || {})[a.slug];
-    var submitted = !!(rec && SUBMITTED_SET[rec.status]);
-    if (needsSubmit && !state.session) {
-      showGate(
-        "本作业参考答案需要登录后查看",
-        "老师设置了“提交作业后才能查看参考答案”。请先登录你的账号。",
-        true
-      );
-      return;
-    }
-    if (needsSubmit && !submitted) {
-      showGate(
-        "本作业的参考答案需要先提交作业",
-        "检测到你还没有提交这份作业的记录。请先按时完成并提交，待记录更新后再来查看。",
-        false
-      );
-      return;
-    }
-
-    content.innerHTML = '<div class="answer-loading">正在载入答案…</div>';
-    content.hidden = false;
-    try {
-      var res = await fetch("answers/" + encodeURIComponent(a.slug) + ".md", { cache: "no-store" });
-      if (!res.ok) throw new Error("missing file");
-      var md = await res.text();
-      var html = renderMarkdown(md);
-      var headNote = a.answer.releaseNote
-        ? '<div class="release-note"><b>' + esc(a.title) + "</b>：" +
-          esc(a.answer.releaseNote) + "</div>"
-        : "";
-      content.innerHTML = headNote + '<div class="answer-body">' + html + "</div>";
-      if (typeof katex !== "undefined" && katex.render) {
-        $$(".math-inline,.math-display", content).forEach(function (span) {
-          var tex = span.getAttribute("data-tex") || "";
-          try {
-            katex.render(tex, span, {
-              displayMode: span.classList.contains("math-display"),
-              throwOnError: false,
-              strict: false
-            });
-          } catch (err) {
-            span.textContent = tex;
-          }
-        });
+      try {
+        var res2 = await fetch("answers/" + encodeURIComponent(a.slug) + ".md", { cache: "no-store" });
+        if (!res2.ok) throw new Error("missing");
+        answerBox.innerHTML = ansTitle + renderMarkdown(await res2.text());
+      } catch (e) {
+        answerBox.innerHTML = ansTitle + noteHtml("参考答案正在整理中，请稍后再来查看。");
       }
-      content.scrollIntoView({ behavior: "smooth", block: "start" });
-    } catch (err) {
-      showGate("答案暂时无法打开", "对应的答案文件尚未上传，或访问时出现问题。请稍后再试，或联系老师。", false);
+    } else {
+      answerBox.innerHTML = ansTitle + noteHtml("参考答案尚未公布，公布后将在此处更新。");
     }
   }
 
-  /* ---------- Markdown + KaTeX 渲染 ---------- */
+  /* ---------- 附加资料 ---------- */
+  async function loadMaterial(slug) {
+    var mats = state.meta.materials || [];
+    var m = null;
+    for (var i = 0; i < mats.length; i++) {
+      if (mats[i].slug === slug) m = mats[i];
+    }
+    var matView = $("#view-material");
+    var home = $("#view-home");
+    home.hidden = true;
+    matView.hidden = false;
+    $("#mat-title").textContent = m ? m.title : "附加资料";
+    var box = $("#mat-content");
+    if (!m || !m.published) {
+      box.innerHTML = noteHtml("该资料尚未发布。");
+      return;
+    }
+    try {
+      var res = await fetch("materials/" + encodeURIComponent(m.slug) + ".md", { cache: "no-store" });
+      if (!res.ok) throw new Error("missing");
+      box.innerHTML = renderMarkdown(await res.text());
+    } catch (e) {
+      box.innerHTML = noteHtml("资料正在整理中，请稍后再来查看。");
+    }
+  }
+
+  /* ---------- Markdown + KaTeX ---------- */
   var MARK_RE = /⟦(\d+)⟧/g;
 
   function maskFences(md) {
     var parts = [];
     var idx = 0;
+    var out = "";
     var re = /```[\s\S]*?```/g;
     var m;
-    var out = "";
     var last = 0;
     while ((m = re.exec(md))) {
       out += md.slice(last, m.index) + "⟦" + idx + "⟧";
@@ -520,42 +388,50 @@
 
   function maskMath(md, parts) {
     var i = parts.length;
-    var mark = function (tex, display) {
+    function mark(tex, display) {
       parts.push({ kind: display ? "display" : "inline", text: tex });
       return "⟦" + i++ + "⟧";
-    };
-    var s = md;
-    s = s.replace(/\$\$([\s\S]+?)\$\$/g, function (_, tex) {
-      return mark(tex.trim(), true);
-    });
-    s = s.replace(/\\\[([\s\S]+?)\\\]/g, function (_, tex) {
-      return mark(tex.trim(), true);
-    });
-    s = s.replace(/\$([^$\n]+?)\$/g, function (_, tex) {
-      return mark(tex.trim(), false);
-    });
-    s = s.replace(/\\\(([\s\S]+?)\\\)/g, function (_, tex) {
-      return mark(tex.trim(), false);
-    });
-    return s;
+    }
+    return md
+      .replace(/\$\$([\s\S]+?)\$\$/g, function (_, tex) { return mark(tex.trim(), true); })
+      .replace(/\\\[([\s\S]+?)\\\]/g, function (_, tex) { return mark(tex.trim(), true); })
+      .replace(/\$([^$\n]+?)\$/g, function (_, tex) { return mark(tex.trim(), false); })
+      .replace(/\\\(([\s\S]+?)\\\)/g, function (_, tex) { return mark(tex.trim(), false); });
   }
 
   function renderMarkdown(md) {
     if (typeof marked === "undefined" || !marked.parse) {
-      return '<p class="err-note">Markdown 渲染组件未正确加载，请检查 assets/vendor/marked 是否存在。</p>';
+      return '<p class="empty-note">Markdown 渲染组件未正确加载。</p>';
     }
     var masked = maskFences(md);
     var text = maskMath(masked.text, masked.parts);
-    var html = "";
+    var html;
     try {
       html = marked.parse(text);
     } catch (e) {
-      return '<p class="err-note">答案排版出错：' + esc(e.message) + "</p>";
+      return '<p class="empty-note">内容排版出错：' + esc(e.message) + "</p>";
     }
     var host = document.createElement("div");
     host.innerHTML = html;
     restoreTokens(host, masked.parts);
-    return host.innerHTML;
+    var out = host.innerHTML;
+    if (typeof katex !== "undefined" && katex.render) {
+      var spans = $$(".math-inline,.math-display", host);
+      spans.forEach(function (span) {
+        var tex = span.getAttribute("data-tex") || "";
+        try {
+          katex.render(tex, span, {
+            displayMode: span.classList.contains("math-display"),
+            throwOnError: false,
+            strict: false
+          });
+        } catch (err) {
+          span.textContent = tex;
+        }
+      });
+      out = host.innerHTML;
+    }
+    return out;
   }
 
   function restoreTokens(container, parts) {
@@ -573,18 +449,14 @@
       var m;
       while ((m = MARK_RE.exec(text))) {
         frag.appendChild(document.createTextNode(text.slice(last, m.index)));
-        var item = parts[parseInt(m[1], 10)];
-        frag.appendChild(makeMathNode(item));
+        frag.appendChild(makeMathNode(parts[parseInt(m[1], 10)]));
         last = m.index + m[0].length;
       }
       MARK_RE.lastIndex = 0;
       frag.appendChild(document.createTextNode(text.slice(last)));
       var codeOnlyParagraph =
-        parent &&
-        parent.tagName === "P" &&
-        parent.childNodes.length === 1 &&
-        frag.firstChild &&
-        frag.firstChild.tagName === "PRE";
+        parent && parent.tagName === "P" && parent.childNodes.length === 1 &&
+        frag.firstChild && frag.firstChild.tagName === "PRE";
       if (codeOnlyParagraph && parent.parentNode) {
         parent.parentNode.replaceChild(frag, parent);
       } else if (parent) {
@@ -598,9 +470,7 @@
     if (item.kind === "code") {
       var pre = document.createElement("pre");
       var codeEl = document.createElement("code");
-      codeEl.textContent = item.text
-        .replace(/^```[^\n]*\n?/, "")
-        .replace(/```\s*$/, "");
+      codeEl.textContent = item.text.replace(/^```[^\n]*\n?/, "").replace(/```\s*$/, "");
       pre.appendChild(codeEl);
       return pre;
     }
@@ -611,44 +481,26 @@
     return span;
   }
 
-  /* ---------------- 路由 ---------------- */
-  function currentRoute() {
-    var raw = location.hash.replace(/^#\/?/, "");
-    var parts = raw.split("/").filter(Boolean);
-    return { name: parts[0] || "home", param: parts[1] ? decodeURIComponent(parts[1]) : null };
-  }
-
-  function route() {
-    var r = currentRoute();
-    $$(".view").forEach(function (sec) {
-      sec.hidden = sec.getAttribute("data-view") !== r.name;
-    });
-    $$(".tab").forEach(function (tab) {
-      tab.classList.toggle("active", tab.getAttribute("data-route") === r.name);
-    });
-    if (r.name === "home") {
-      renderHomeAnnouncements();
-      renderHomeAssignments();
-    } else if (r.name === "me") {
-      renderMeView();
-    } else if (r.name === "answers") {
-      renderAnswersView(r.param);
-    } else {
-      location.hash = "#/home";
-    }
-  }
-
   function showFatal(msg) {
-    var el = $("#view-home");
-    el.hidden = false;
-    $("#view-me").hidden = true;
-    $("#view-answers").hidden = true;
-    el.innerHTML =
-      '<div class="sheet" style="margin-top:20px">' +
-      "<h2 class=\"sheet-title\">页面初始化失败</h2>" +
-      "<p>原因：" + esc(msg) + "</p>" +
-      "<p>请确认：1) 通过 HTTPS（GitHub Pages）访问本页面；2) data/ 下的 meta.json 与 records.json 都存在。</p>" +
-      "</div>";
+    var home = $("#view-home");
+    home.hidden = false;
+    home.innerHTML =
+      '<div class="panel"><h2>页面初始化失败</h2>' +
+      "<p>" + esc(msg) + "</p>" +
+      "<p>请通过 HTTPS（GitHub Pages）访问，并确认 data/ 下文件齐全。</p></div>";
+  }
+
+  /* ---------- 启动 ---------- */
+  function bindEvents() {
+    $("#login-form").addEventListener("submit", onLogin);
+    $("#modal-close").addEventListener("click", closeStatusModal);
+    $("#status-modal").addEventListener("click", function (ev) {
+      if (ev.target === ev.currentTarget) closeStatusModal();
+    });
+    document.addEventListener("keydown", function (ev) {
+      if (ev.key === "Escape" && !$("#status-modal").hidden) closeStatusModal();
+    });
+    window.addEventListener("hashchange", route);
   }
 
   async function boot() {
@@ -665,8 +517,7 @@
         }
       }
       renderHeader();
-      bindMeEvents();
-      window.addEventListener("hashchange", route);
+      bindEvents();
       route();
       if (state.meta.demo && /[?&]preview=1/.test(location.search)) {
         try {
@@ -674,7 +525,7 @@
           if (demoRec) {
             state.session = await CalcCrypto.decryptPayload(demoRec, "20260001");
             saveSession(state.session);
-            route();
+            updateWhoami();
           }
         } catch (e) {
           console.warn("preview login failed", e);
