@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>微积分 · 作业查分台</title>
+  <meta name="description" content="微积分课程作业完成情况、成绩与参考答案查询" />
+  <link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="assets/vendor/katex/katex.min.css" />
+  <link rel="stylesheet" href="assets/css/style.css" />
+</head>
+<body>
+  <div class="grain" aria-hidden="true"></div>
+
+  <div id="demo-banner" class="demo-banner" hidden>
+    <strong>演示模式</strong>
+    <span>学号 <code>20260001</code> · 查询码 <code>math2026</code>（正式启用时老师会关闭演示）</span>
+  </div>
+
+  <header class="masthead">
+    <div class="masthead-inner">
+      <div class="brand">
+        <svg class="brand-check" viewBox="0 0 64 64" aria-hidden="true">
+          <circle cx="32" cy="32" r="27" fill="none" stroke="currentColor" stroke-width="4" />
+          <path d="M18 33l10 10 18-22" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+        <div>
+          <p class="brand-kicker">CALCULUS · GRADING DESK</p>
+          <h1 id="site-title">微积分 · 作业查分台</h1>
+          <p class="brand-sub" id="site-sub">正在载入课程信息…</p>
+        </div>
+      </div>
+      <div class="masthead-stamp" id="term-stamp" aria-hidden="true">
+        <span class="stamp-line-1">2026</span>
+        <span class="stamp-line-2">秋 季</span>
+      </div>
+    </div>
+  </header>
+
+  <nav class="tabs" aria-label="主导航">
+    <a class="tab" href="#/home" data-route="home">首页</a>
+    <a class="tab" href="#/me" data-route="me">我的完成情况</a>
+    <a class="tab" href="#/answers" data-route="answers">参考答案</a>
+  </nav>
+
+  <main class="page">
+    <!-- ============ 首页 ============ -->
+    <section id="view-home" class="view" data-view="home">
+      <div class="hero">
+        <div class="hero-copy">
+          <p class="hero-eyebrow" id="hero-eyebrow">你好，欢迎打开作业本</p>
+          <h2>你的每一份作业，<br />老师都认真批过了。</h2>
+          <p class="hero-note" id="hero-note">输入学号与查询码，查看完成情况、成绩与批注；参考答案按老师发布节奏开放。</p>
+          <div class="hero-actions">
+            <a class="btn btn-primary" href="#/me">查询我的完成情况</a>
+            <a class="btn btn-ghost" href="#/answers">浏览参考答案</a>
+          </div>
+        </div>
+        <ol class="steps" aria-label="使用步骤">
+          <li>
+            <span class="step-no">壹</span>
+            <div><strong>输入学号</strong><small>例如 20260001</small></div>
+          </li>
+          <li>
+            <span class="step-no">贰</span>
+            <div><strong>输入查询码</strong><small>老师私下下发的随机码</small></div>
+          </li>
+          <li>
+            <span class="step-no">叁</span>
+            <div><strong>查看个人记录</strong><small>状态 · 分数 · 批注 · 答案</small></div>
+          </li>
+        </ol>
+      </div>
+
+      <div class="grid-2">
+        <section class="sheet">
+          <h3 class="sheet-title"><span class="tick" aria-hidden="true"></span>公告</h3>
+          <div id="home-announcements" class="announce-list"></div>
+        </section>
+        <section class="sheet">
+          <h3 class="sheet-title"><span class="tick" aria-hidden="true"></span>作业安排</h3>
+          <div id="home-assignments" class="hw-overview"></div>
+          <p class="sheet-footnote" id="policy-note"></p>
+        </section>
+      </div>
+    </section>
+
+    <!-- ============ 我的完成情况 ============ -->
+    <section id="view-me" class="view" data-view="me" hidden>
+      <div id="login-card" class="sheet login-sheet">
+        <div class="login-copy">
+          <p class="hero-eyebrow">学生查询入口</p>
+          <h2>登录后查看<br />只属于你的批改记录</h2>
+          <p>查询码是老师单独下发的，每位同学不同。若遗失，请联系老师重置。</p>
+        </div>
+        <form id="login-form" class="login-form" novalidate>
+          <label>
+            <span>学号</span>
+            <input id="login-sid" name="sid" type="text" inputmode="numeric" autocomplete="off"
+                   placeholder="例如 20260001" required />
+          </label>
+          <label>
+            <span>查询码</span>
+            <input id="login-code" name="code" type="password" autocomplete="off"
+                   placeholder="老师下发的查询码" required />
+          </label>
+          <button class="btn btn-primary btn-block" type="submit">查 询</button>
+          <p class="form-error" id="login-error" role="alert" hidden></p>
+          <p class="login-hint demo-only" id="demo-hint" hidden>
+            演示：学号 20260001，查询码 math2026
+          </p>
+        </form>
+      </div>
+
+      <div id="me-content" hidden>
+        <div class="me-head">
+          <div>
+            <p class="hero-eyebrow" id="me-name-line">同学，你好</p>
+            <h2 class="me-title" id="me-title-line">你的作业记录</h2>
+          </div>
+          <div class="me-actions">
+            <button class="btn btn-ghost btn-sm" id="btn-print" type="button">打印 / 保存 PDF</button>
+            <button class="btn btn-ghost btn-sm" id="btn-logout" type="button">退出登录</button>
+          </div>
+        </div>
+
+        <div class="stat-row" id="me-stats"></div>
+        <div class="sheet">
+          <div class="record-list" id="me-record-list"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 参考答案 ============ -->
+    <section id="view-answers" class="view" data-view="answers" hidden>
+      <div class="answer-head">
+        <div>
+          <p class="hero-eyebrow">课后核对</p>
+          <h2>参考答案</h2>
+          <p id="answer-policy" class="answer-policy"></p>
+        </div>
+        <div class="answer-tabs" id="answer-tabs" role="tablist" aria-label="作业答案"></div>
+      </div>
+      <div id="answer-gate" class="gate" hidden></div>
+      <article id="answer-content" class="answer-sheet paper-card" hidden></article>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <p>微积分课程 · 作业查分台</p>
+    <p id="footer-contact" class="footer-contact">如有问题请联系任课老师</p>
+    <p class="footer-small">页面为静态部署：老师每次更新推送后，刷新即可看到最新结果。</p>
+  </footer>
+
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+  <script src="assets/js/crypto-core.js"></script>
+  <script src="assets/vendor/marked/marked.min.js"></script>
+  <script src="assets/vendor/katex/katex.min.js"></script>
+  <script src="assets/js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,144 @@
+# 微积分 · 作业查分台
+
+给《微积分》课程用的 GitHub Pages 网页：学生输入 **学号 + 查询码**，即可查看自己每份作业的**完成情况、成绩与批注**，并可在老师发布后**查看参考答案**（公式由本地组件渲染，不依赖外网）。
+
+本网站是**纯静态网页**，不需要服务器。每次老师批改完毕、把新数据推送到 GitHub 后，学生刷新页面即可看到最新结果（GitHub Pages 通常一分钟内自动更新）。
+
+---
+
+## 1. 这个页面解决什么问题
+
+1. 学生把**手写或 LaTeX PDF** 交到班级既有的渠道（群文件、网盘、教学平台等），本页面**不负责收集作业**。
+2. 老师下载 PDF 后整理成名单，交由 Codex 批改。
+3. 批改结果进入“教师台账”，生成**加密**的成绩数据后发布到本网页。
+4. 学生用“学号 + 查询码”登录，只看到**自己**的完成情况、分数和批注。
+5. 老师发布参考答案后，学生在“参考答案”页查看（可设置“需已提交才能看”）。
+
+> 关于“实时”：静态网页没有服务器推送。老师每次 push 后约 1 分钟内更新，学生刷新页面即可，这是 GitHub Pages 能做到的最接近实时的效果。
+
+## 2. 目录结构
+
+```text
+.
+├─ index.html                 # 学生端页面（查分台）
+├─ data/
+│  ├─ meta.json               # 课程信息、公告、作业清单、参考答案开关
+│  └─ records.json            # 加密后的学生成绩（生成，不要手改）
+├─ answers/
+│  └─ hw01.md                 # 参考答案（Markdown + LaTeX 公式），公布后再上传
+├─ assets/
+│  ├─ css/style.css
+│  ├─ js/  app.js、crypto-core.js、publish-logic.js
+│  └─ vendor/                 # 本地公式与 Markdown 渲染组件（已内置）
+├─ tools/
+│  └─ publish.html            # 教师端发布工具（浏览器直接打开即可用）
+├─ scripts/
+│  └─ publish-cli.cjs         # 命令行版发布工具（供 Codex 自动批改流程使用）
+└─ .github/workflows/pages.yml
+```
+
+## 3. 部署（只需做一次）
+
+### 3.1 新建仓库并上传
+
+1. 在 [github.com/new](https://github.com/new) 新建一个**公开仓库**（GitHub Pages 免费版要求公开），例如 `Calculus2026` 或 `calculus-portal`。
+2. 在本地把本项目文件夹上传到该仓库（可以直接把 `fiddie-calculus-portal` 里的内容作为仓库根目录）。如果希望改仓库名或目录名，直接改文件夹名即可，网页内部全部使用相对路径，不受影响。
+
+### 3.2 开启 GitHub Pages
+
+方式 A（推荐，本项目已附带 Actions 工作流）：
+
+1. 仓库 Settings → Pages → **Source 选 “GitHub Actions”**。
+2. 以后每次 push 到 `main` 分支，工作流会自动部署。
+
+方式 B（不使用 Actions）：
+
+1. Settings → Pages → Source 选 **Deploy from a branch** → 分支 `main`，目录 `/ (root)`。
+2. 仓库里已放 `.nojekyll`，GitHub 不会用 Jekyll 处理本网页。
+
+发布后网址为：
+
+```text
+https://<你的用户名>.github.io/<仓库名>/
+```
+
+例如 FiddieMath 的仓库 `Calculus2026` 对应：
+
+```text
+https://fiddiemath.github.io/Calculus2026/
+```
+
+### 3.3 从个人主页加一个入口（可选）
+
+在个人主页仓库的 `index.md` 里加一行链接即可，例如：
+
+```markdown
+《微积分》作业查分台：<https://fiddiemath.github.io/Calculus2026/>
+```
+
+---
+
+## 4. 开学首次配置
+
+1. **修改课程信息**：编辑 `data/meta.json` 里的 `site`（课程名、老师、联系方式）和 `announcements`（公告）。`assignments` 里按每周作业维护一份清单。
+2. **生成查询码**：浏览器打开 `tools/publish.html`，在“① 初始化班级”中粘贴全班“学号,姓名”名单，点生成，会下载两个文件：
+   - `classbook.json`：教师台账（含成绩明文），**保密保存，不要上传仓库**；
+   - `查询码.csv`：每个学生一个随机查询码，**通过私聊/邮件等方式发给学生，不要公开**。
+3. **生成加密数据**：把 `查询码.csv` 和 `classbook.json` 上传到工具“③ 生成加密数据”，下载 `records.json` 并覆盖 `data/records.json`。
+4. **去掉演示状态**：`data/meta.json` 中把 `"demo": true` 改为 `false`（演示账号会失效）。
+5. 提交并推送，把网址发给学生。
+
+> 若想换一批查询码：在工具“② 修改查询码”中重新生成即可，同时更新发给学生的名单。
+
+## 5. 每周批改与发布流程
+
+1. 学生按班级约定提交 PDF；老师下载到一个文件夹。
+2. 把题目（和评分标准）告诉 Codex，让它逐份批改。
+3. 批改产物是一张成绩表（CSV：`学号,状态,得分,满分,备注`），其中状态可写：`未交 / 迟交 / 已交`；得分留空表示“已交、待批改”。
+4. 老师在 `tools/publish.html` 的“③ 更新成绩”中上传三份文件（查询码.csv、classbook.json、成绩表 CSV），填写本次作业 slug（如 `hw04`）与标题，生成：
+   - 更新后的 `classbook.json`（覆盖本地那份）；覆盖 `data/records.json`。
+   - 同时把新作业加进 `data/meta.json` 的 `assignments`。
+5. 参考答案：把答案写成 `answers/hw04.md`（Markdown + LaTeX），并确保 `meta.json` 中该作业的 `"answer": { "published": true }`。
+6. 推送到 GitHub，学生刷新即可看到。
+
+如果老师希望 Codex 代跑第 4–5 步（把 CSV 与答案发给 Codex 即可），也可以使用命令行工具：
+
+```text
+node scripts/publish-cli.cjs --classbook classbook.json --keys 查询码.csv --grades 成绩.csv --slug hw04 --out data/records.json
+```
+
+## 6. 隐私与安全说明
+
+- 成绩记录用 **AES-GCM** 加密（密钥由“查询码”经 PBKDF2 派生），仓库里只有密文；没有查询码的人即使下载 `records.json` 也读不到成绩。
+- `查询码.csv` 与 `classbook.json`（成绩明文台账）**绝不能进仓库**，请存放在自己的私有目录。
+- 参考答案一旦上传到公开仓库，就等于公开。请**到发布时间再把答案文件推上去**（先写在本机，不要提前上传）。
+- 静态网页无法阻止“已登录学生截图给别人”或“已发布答案被转发”，请按班级诚信约定处理。
+- “需提交后才能看答案”是页面层面的提醒：答案发布后，仓库里的文件本身是公开的。
+
+## 7. 常见问题
+
+**学生忘记查询码？**
+老师在 `tools/publish.html` 的“② 修改查询码”为该生生成新码，重新发布 `records.json` 并把新码私发给他。
+
+**公式没有显示？**
+公式组件已内置在 `assets/vendor/`，正常情况无需外网。若显示异常，先强制刷新（Ctrl+F5）再试。
+
+**想改课程名 / 公告 / 作业截止日期？**
+全部在 `data/meta.json` 中改，保存并推送即可。
+
+**我的学生访问 GitHub 很慢？**
+这是 GitHub Pages 的网络特性。可以在班级群发布网址的同时附上“若打不开请稍后再试或使用镜像”的提示。若经常不可用，后续可以考虑 Cloudflare Pages 等替代，结构保持不变。
+
+---
+
+## 8. 本页面的设计
+
+界面采用“老师批改作业的纸面”风格：米色纸张纹理、墨蓝文字、朱红批改符号与印章，配合练习本式的表格与动态印章动画。所有资源本地化，不依赖外网字体/图标。
+
+演示账号（`demo` 为 `true` 时有效）：
+
+```text
+学号：20260001
+查询码：math2026
+```
+

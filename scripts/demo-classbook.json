@@ -1,0 +1,52 @@
+{
+  "version": 2,
+  "course": {
+    "courseName": "《微积分（上）》",
+    "semester": "2026-2027 学年秋季学期（演示数据）"
+  },
+  "students": [
+    {
+      "sid": "20260001",
+      "name": "张同学",
+      "assignments": {
+        "hw01": {
+          "status": "graded",
+          "score": 87,
+          "max": 100,
+          "comment": "整体思路清晰。第 3 题换元过程略过一步，端点情形未单独讨论；第 2 题放缩方向写反了一处（已用红笔标注）。"
+        },
+        "hw02": { "status": "submitted" },
+        "hw03": { "status": "missing" }
+      }
+    },
+    {
+      "sid": "20260002",
+      "name": "李同学",
+      "assignments": {
+        "hw01": {
+          "status": "graded",
+          "score": 95,
+          "max": 100,
+          "comment": "完成得非常好，书写规范。第 3 题可进一步说明为何 cos 2x → 1。"
+        },
+        "hw02": { "status": "graded", "score": 90, "max": 100, "comment": "" },
+        "hw03": { "status": "missing" }
+      }
+    },
+    {
+      "sid": "20260003",
+      "name": "王同学",
+      "assignments": {
+        "hw01": {
+          "status": "late_graded",
+          "score": 72,
+          "max": 100,
+          "comment": "迟交一天。第 2 题夹逼过程不完整，需写出上下界收敛到同一极限。"
+        },
+        "hw02": { "status": "submitted" },
+        "hw03": { "status": "missing" }
+      }
+    }
+  ]
+}
+

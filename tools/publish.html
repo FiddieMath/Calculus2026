@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>教师端 · 发布工具</title>
+  <style>
+    :root {
+      --ink: #29324e; --paper: #f4efdf; --paper2: #fbf8ec;
+      --line: #d9cfb4; --red: #c3382b; --red-dark: #96251c;
+      --green: #256b4b; --amber: #9a6a16;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; background: var(--paper); color: var(--ink);
+      font-family: "Songti SC", "Noto Serif CJK SC", "SimSun", serif;
+      font-size: 16px; line-height: 1.75;
+    }
+    .wrap { max-width: 980px; margin: 0 auto; padding: 28px 20px 70px; }
+    header { border-bottom: 3px double var(--red); padding-bottom: 12px; margin-bottom: 18px; }
+    header h1 { margin: 0; font-size: 30px; font-family: "Kaiti SC", "STKaiti", "KaiTi", serif; letter-spacing: .06em; }
+    header p { margin: 4px 0 0; color: #4d5874; }
+    .warn {
+      border: 1.5px dashed var(--red); background: rgba(195,56,43,.07);
+      padding: 10px 16px; border-radius: 8px; margin: 12px 0 22px; color: var(--red-dark);
+    }
+    .panel {
+      background: var(--paper2); border: 1.5px solid var(--line);
+      border-radius: 10px; padding: 20px 22px; margin-bottom: 20px;
+      box-shadow: 4px 4px 0 rgba(41,50,78,.08);
+    }
+    .panel h2 { margin: 0 0 6px; font-family: "Kaiti SC","STKaiti","KaiTi",serif; font-size: 21px; }
+    .panel > .desc { margin: 0 0 12px; color: #4d5874; font-size: 14.5px; }
+    label { display: block; margin: 10px 0 4px; font-weight: 700; font-size: 14.5px; }
+    textarea, input[type="text"] {
+      width: 100%; border: 1.5px solid var(--line); border-radius: 7px;
+      padding: 9px 12px; font: 13.5px/1.6 Consolas, Menlo, monospace;
+      background: #fffdf6; color: var(--ink);
+    }
+    textarea { min-height: 150px; resize: vertical; }
+    input[type="text"] { font-family: inherit; }
+    .row { display: flex; gap: 14px; flex-wrap: wrap; align-items: flex-end; }
+    .row > div { flex: 1 1 220px; }
+    .btn {
+      display: inline-block; border: 1.5px solid var(--red-dark); background: var(--red);
+      color: #fff8ec; padding: 9px 18px; border-radius: 7px; cursor: pointer;
+      font-size: 15.5px; font-family: "Kaiti SC","STKaiti","KaiTi",serif; letter-spacing: .08em;
+      margin-top: 12px; box-shadow: 3px 3px 0 rgba(41,50,78,.2);
+    }
+    .btn:hover { background: var(--red-dark); }
+    .btn:disabled { opacity: .5; cursor: not-allowed; }
+    .btn.ghost {
+      background: transparent; color: var(--ink); border-color: #b9ad90; box-shadow: none;
+    }
+    .filebox { display: flex; gap: 8px; align-items: center; }
+    .filebox input[type="file"] { display: none; }
+    .filelabel {
+      border: 1.5px dashed #b9ad90; border-radius: 7px; padding: 7px 14px; cursor: pointer;
+      background: #fffdf6; font-size: 14px; text-align: center; flex: 1;
+    }
+    .fname { font-size: 13px; color: #7b8498; word-break: break-all; }
+    .log {
+      margin-top: 14px; padding: 10px 14px; border-radius: 7px; font-size: 14px;
+      background: rgba(37,107,75,.09); border: 1px solid var(--green); color: #1f563c;
+      white-space: pre-wrap; font-family: Consolas, Menlo, monospace; display: none;
+    }
+    .log.error { background: rgba(195,56,43,.08); border-color: var(--red); color: var(--red-dark); }
+    .log.warn { background: rgba(154,106,22,.1); border-color: var(--amber); color: #6d4a0b; }
+    ol.tips { margin: 4px 0 0; padding-left: 1.4em; color: #4d5874; font-size: 14.5px; }
+    .small { font-size: 13px; color: #7b8498; }
+    .step { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px;
+      border-radius: 50%; background: var(--red); color: #fff; font-weight: 700; margin-right: 8px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>教师端 · 发布工具</h1>
+      <p>初始化班级查询码、导入每周成绩、生成加密数据文件。所有处理都在本机浏览器完成，不上传任何数据。</p>
+    </header>
+
+    <div class="warn">
+      <strong>保密提醒：</strong> <code>查询码.csv</code> 与 <code>classbook.json</code>（成绩明文台账）必须保存在自己电脑的私有目录，
+      <b>绝不能放进 GitHub 仓库</b>。仓库里只放工具生成的加密 <code>records.json</code>。
+    </div>
+
+    <!-- ① 初始化 -->
+    <section class="panel">
+      <h2><span class="step">壹</span>初始化班级：生成查询码与空白台账</h2>
+      <p class="desc">粘贴全班名单（每行：学号,姓名）。可同时上传旧台账与旧查询码表，保留已有记录和查询码。</p>
+      <label for="roster">名单文本（逗号或 Tab 分隔均可）</label>
+      <textarea id="roster" placeholder="学号,姓名&#10;20260001,张三&#10;20260002,李四"></textarea>
+      <div class="filebox">
+        <label class="filelabel" for="old-cb">可选：上传已有 classbook.json<input type="file" id="old-cb" accept=".json" /></label>
+        <span class="fname" id="old-cb-name">未选择</span>
+      </div>
+      <div class="filebox" style="margin-top:8px">
+        <label class="filelabel" for="old-keys">可选：上传已有 查询码.csv<input type="file" id="old-keys" accept=".csv,text/plain" /></label>
+        <span class="fname" id="old-keys-name">未选择</span>
+      </div>
+      <button class="btn" id="btn-init" type="button">生成 查询码.csv 与 classbook.json</button>
+      <div class="log" id="log-init"></div>
+    </section>
+
+    <!-- ② 改码 -->
+    <section class="panel">
+      <h2><span class="step">贰</span>修改查询码（学生遗忘/重置）</h2>
+      <p class="desc">上传现有 <code>查询码.csv</code>。可选择“全部重新生成”；或提供新码表（每行：学号,新查询码）。</p>
+      <div class="row">
+        <div class="filebox">
+          <label class="filelabel" for="keys2">上传现有查询码.csv<input type="file" id="keys2" accept=".csv,text/plain" /></label>
+          <span class="fname" id="keys2-name">未选择</span>
+        </div>
+        <div>
+          <label for="newkeys">新码表（可选；留空则全部重新生成）</label>
+          <textarea id="newkeys" style="min-height:100px" placeholder="学号,新查询码&#10;20260001,ab3de7xyzq"></textarea>
+        </div>
+      </div>
+      <button class="btn" id="btn-rekey" type="button">生成新的 查询码.csv</button>
+      <div class="log" id="log-rekey"></div>
+    </section>
+
+    <!-- ③ 发布 -->
+    <section class="panel">
+      <h2><span class="step">叁</span>每周更新：导入成绩并生成加密 records.json</h2>
+      <p class="desc">上传三份文件：台账 classbook.json、查询码.csv、本周成绩表。成绩表列顺序：<code>学号,状态,得分,满分,备注</code>。</p>
+      <ol class="tips">
+        <li>状态可写：<code>未交 / 迟交 / 已交</code>；得分留空表示“已交、待批改”。</li>
+        <li>例：<code>20260001,已交,87,100,第3题端点讨论不完整</code>；未交者：<code>20260001,未交,,,</code></li>
+      </ol>
+      <div class="row" style="margin-top:10px">
+        <div class="filebox">
+          <label class="filelabel" for="cb3">classbook.json<input type="file" id="cb3" accept=".json" /></label>
+          <span class="fname" id="cb3-name">未选择</span>
+        </div>
+        <div class="filebox">
+          <label class="filelabel" for="keys3">查询码.csv<input type="file" id="keys3" accept=".csv,text/plain" /></label>
+          <span class="fname" id="keys3-name">未选择</span>
+        </div>
+        <div class="filebox">
+          <label class="filelabel" for="grades">本周成绩.csv<input type="file" id="grades" accept=".csv,text/plain" /></label>
+          <span class="fname" id="grades-name">未选择</span>
+        </div>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <div>
+          <label for="slug">作业 slug（与 meta.json 中一致，如 hw04）</label>
+          <input type="text" id="slug" placeholder="hw04" />
+        </div>
+        <div>
+          <label for="awtitle">作业标题（记录在台账中）</label>
+          <input type="text" id="awtitle" placeholder="第四次作业：中值定理" />
+        </div>
+      </div>
+      <button class="btn" id="btn-publish" type="button">合并台账并生成 records.json</button>
+      <div class="log" id="log-publish"></div>
+    </section>
+
+    <section class="panel">
+      <h2>发布后还需要做什么</h2>
+      <ol class="tips">
+        <li>把下载的 <code>records.json</code> 覆盖到网站仓库的 <code>data/records.json</code>。</li>
+        <li>把新作业加进 <code>data/meta.json</code> 的 <code>assignments</code>（公告与截止日期也在这里改）。</li>
+        <li>参考答案写好后放到 <code>answers/hw04.md</code>，并把该作业的 <code>answer.published</code> 改为 <code>true</code>，再 push 到 GitHub。</li>
+        <li>把更新后的 <code>classbook.json</code> 保存回你自己的私有目录，继续当台账使用。</li>
+      </ol>
+      <p class="small">提示：手动维护麻烦时，也可以把成绩 CSV 与答案直接交给 Codex，让它运行 <code>scripts/publish-cli.cjs</code> 并提交仓库。</p>
+    </section>
+  </div>
+
+  <script src="../assets/js/crypto-core.js"></script>
+  <script src="../assets/js/publish-logic.js"></script>
+  <script>
+    (function () {
+      "use strict";
+      function download(filename, text) {
+        var blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+        var a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(function () {
+          URL.revokeObjectURL(a.href);
+          a.remove();
+        }, 300);
+      }
+      function readFile(file) {
+        return new Promise(function (resolve, reject) {
+          var r = new FileReader();
+          r.onload = function () { resolve(String(r.result)); };
+          r.onerror = function () { reject(new Error("文件读取失败")); };
+          r.readAsText(file, "utf-8");
+        });
+      }
+      function logTo(box, text, kind) {
+        box.textContent = text;
+        box.className = "log" + (kind ? " " + kind : "");
+        box.style.display = "block";
+      }
+      function stamp() {
+        var d = new Date();
+        return d.getFullYear() + String(d.getMonth() + 1).padStart(2, "0") + String(d.getDate()).padStart(2, "0");
+      }
+      function showFileName(input, span) {
+        input.addEventListener("change", function () {
+          span.textContent = input.files && input.files[0] ? input.files[0].name : "未选择";
+        });
+      }
+      showFileName(document.getElementById("old-cb"), document.getElementById("old-cb-name"));
+      showFileName(document.getElementById("old-keys"), document.getElementById("old-keys-name"));
+      showFileName(document.getElementById("keys2"), document.getElementById("keys2-name"));
+      showFileName(document.getElementById("cb3"), document.getElementById("cb3-name"));
+      showFileName(document.getElementById("keys3"), document.getElementById("keys3-name"));
+      showFileName(document.getElementById("grades"), document.getElementById("grades-name"));
+
+      function jsonText(obj) {
+        return JSON.stringify(obj, null, 2);
+      }
+
+      /* 壹：初始化 */
+      document.getElementById("btn-init").addEventListener("click", async function () {
+        var box = document.getElementById("log-init");
+        try {
+          var text = document.getElementById("roster").value.trim();
+          if (!text) { logTo(box, "请先粘贴名单（每行：学号,姓名）。", "error"); return; }
+          var roster = CalcPublish.parseRoster(text);
+          if (!roster.length) { logTo(box, "名单解析为空，请检查格式。", "error"); return; }
+
+          var oldCb = null;
+          var f = document.getElementById("old-cb").files[0];
+          if (f) oldCb = JSON.parse(await readFile(f));
+          var cb = CalcPublish.classbookFromRoster(roster, oldCb);
+
+          var keysMap = {};
+          var kf = document.getElementById("old-keys").files[0];
+          if (kf) {
+            var oldKeys = CalcPublish.parseKeys(await readFile(kf));
+            oldKeys.list.forEach(function (k) { keysMap[k.sid] = k.code; });
+          }
+          cb.students.forEach(function (s) {
+            if (!keysMap[s.sid]) keysMap[s.sid] = CalcCrypto.randomCode(10);
+          });
+          var keysCsv = CalcPublish.makeKeysCsv(cb.students, keysMap);
+          download("查询码-" + stamp() + ".csv", keysCsv);
+          download("classbook.json", jsonText(cb));
+          logTo(box,
+            "成功生成 " + cb.students.length + " 名学生的查询码" +
+            (kf ? "（保留已有查询码，仅新增学生生成新码）" : "（全部为新随机码）") + "。\n" +
+            "下载了两个文件：\n" +
+            "  · 查询码-*.csv  → 私发给学生；\n" +
+            "  · classbook.json → 存放在私有目录作台账。");
+        } catch (e) {
+          logTo(box, "出错了：" + e.message, "error");
+        }
+      });
+
+      /* 贰：修改查询码 */
+      document.getElementById("btn-rekey").addEventListener("click", async function () {
+        var box = document.getElementById("log-rekey");
+        try {
+          var f = document.getElementById("keys2").files[0];
+          if (!f) { logTo(box, "请先上传现有 查询码.csv。", "error"); return; }
+          var old = CalcPublish.parseKeys(await readFile(f));
+          var newText = document.getElementById("newkeys").value.trim();
+          var newRows = newText ? CalcPublish.parseTable(newText) : [];
+          var newMap = {};
+          newRows.forEach(function (r) {
+            if (r[0] && r[1]) newMap[String(r[0]).trim()] = String(r[1]).trim();
+          });
+          var lines = ["学号,姓名,查询码"];
+          old.list.forEach(function (k) {
+            var code = newMap[k.sid] || CalcCrypto.randomCode(10);
+            lines.push(k.sid + "," + (k.name || k.sid) + "," + code);
+          });
+          download("查询码-" + stamp() + ".csv", "\uFEFF" + lines.join("\r\n"));
+          logTo(box, "已生成新查询码表：" + out.length + " 条。\n新码请私发学生，并重新运行“叁”生成 records.json。");
+        } catch (e) {
+          logTo(box, "出错了：" + e.message, "error");
+        }
+      });
+
+      /* 叁：发布 */
+      document.getElementById("btn-publish").addEventListener("click", async function () {
+        var box = document.getElementById("log-publish");
+        try {
+          var cbFile = document.getElementById("cb3").files[0];
+          var keysFile = document.getElementById("keys3").files[0];
+          var gradeFile = document.getElementById("grades").files[0];
+          var slug = document.getElementById("slug").value.trim();
+          var title = document.getElementById("awtitle").value.trim();
+          if (!cbFile || !keysFile || !gradeFile) {
+            logTo(box, "请上传 classbook.json、查询码.csv、成绩表 CSV 三份文件。", "error");
+            return;
+          }
+          if (!slug) { logTo(box, "请填写作业 slug，例如 hw04。", "error"); return; }
+          var cb = JSON.parse(await readFile(cbFile));
+          var keys = CalcPublish.parseKeys(await readFile(keysFile));
+          var gradeText = await readFile(gradeFile);
+          var grades = CalcPublish.parseGrades(gradeText);
+          if (!grades.length) { logTo(box, "成绩表解析为空，请检查列格式：学号,状态,得分,满分,备注。", "error"); return; }
+          var warnings = CalcPublish.mergeGrades(cb, grades, slug);
+          cb.course = cb.course || {};
+          cb.course.assignments = cb.course.assignments || [];
+          if (title && !cb.course.assignments.some(function (a) { return a.slug === slug; })) {
+            cb.course.assignments.push({ slug: slug, title: title });
+          }
+          var result = await CalcPublish.buildRecords(cb, keys.map);
+          if (result.missingKeys && result.missingKeys.length) {
+            logTo(box, "以下学生缺少查询码，无法加密：" + result.missingKeys.join("、") +
+              "\n请先在“贰”中补齐，再重新发布。", "error");
+            return;
+          }
+          download("classbook.json", jsonText(cb));
+          download("records.json", jsonText(result));
+          var msg =
+            "成功合并 " + grades.length + " 条成绩（作业 " + slug + "）。\n" +
+            "下载了两个文件：\n" +
+            "  · classbook.json → 覆盖保存到你的私有目录；\n" +
+            "  · records.json → 覆盖到网站仓库 data/records.json。\n" +
+            "生成时间：" + result.generatedAt + "；学生数：" + result.studentCount;
+          if (warnings.length) msg += "\n\n提醒：\n" + warnings.join("\n");
+          logTo(box, msg, warnings.length ? "warn" : "");
+        } catch (e) {
+          logTo(box, "出错了：" + e.message, "error");
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

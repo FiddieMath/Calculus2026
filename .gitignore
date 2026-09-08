@@ -1,0 +1,17 @@
+# 隐私文件——绝不要提交到仓库
+_private/
+classbook*.json
+*keys*.csv
+*查询码*.csv
+*.plain.json
+data/*.tmp
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# 本地运行产生的缓存
+.jekyll-cache/
+_site/
+node_modules/
+

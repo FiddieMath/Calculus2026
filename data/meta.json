@@ -1,0 +1,63 @@
+{
+  "demo": true,
+  "site": {
+    "title": "微积分 · 作业查分台",
+    "courseName": "《微积分（上）》",
+    "teacher": "Fiddie",
+    "semester": "2026–2027 学年 秋季学期",
+    "contact": "fiddie@example.com（请改成老师的真实邮箱）",
+    "shortNote": "输入学号与查询码，查看你的作业完成情况、成绩与批注。",
+    "policyNote": "参考答案仅用于批改后的核对，请先独立完成作业再查看。"
+  },
+  "announcements": [
+    {
+      "date": "2026-09-08",
+      "title": "查分台启用",
+      "body": "本页面正式启用。输入学号与老师下发的查询码即可查看个人作业记录。查询码若遗失请联系老师重置。"
+    },
+    {
+      "date": "2026-09-12",
+      "title": "第一次作业已发布",
+      "body": "第一次作业（函数与极限）已布置，截止时间见作业清单。请按时提交，答案将在截止后公布。"
+    },
+    {
+      "date": "2026-09-20",
+      "title": "第一次作业参考答案已公布",
+      "body": "第一次作业的参考答案已可在“参考答案”页查看，请先自行订正再对照。"
+    }
+  ],
+  "assignments": [
+    {
+      "slug": "hw01",
+      "title": "第一次作业：函数与极限",
+      "due": "2026-09-18T23:59:00+08:00",
+      "topics": ["数列极限", "夹逼准则", "重要极限"],
+      "answer": {
+        "published": true,
+        "requiresSubmission": false,
+        "releaseNote": "参考答案已公布"
+      }
+    },
+    {
+      "slug": "hw02",
+      "title": "第二次作业：函数的连续性",
+      "due": "2026-09-25T23:59:00+08:00",
+      "topics": ["连续与间断", "闭区间上连续函数的性质"],
+      "answer": {
+        "published": false,
+        "requiresSubmission": false
+      }
+    },
+    {
+      "slug": "hw03",
+      "title": "第三次作业：导数与微分",
+      "due": "2026-10-09T23:59:00+08:00",
+      "topics": ["导数定义", "求导法则", "微分"],
+      "answer": {
+        "published": false,
+        "requiresSubmission": false
+      }
+    }
+  ]
+}
+
