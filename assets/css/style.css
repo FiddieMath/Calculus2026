@@ -55,7 +55,7 @@ code { font-family: Consolas, Menlo, monospace; font-size: 0.9em; background: rg
 .topbar {
   max-width: 1000px;
   margin: 0 auto;
-  padding: 26px 20px 14px;
+  padding: 26px 40px 14px;
 }
 .topbar h1 {
   margin: 0;
