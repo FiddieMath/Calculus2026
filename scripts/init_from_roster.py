@@ -126,6 +126,11 @@ def main():
 
     used = set(old_keys.values())
     key_map = {}
+    old_by_sid = {}
+    if old_cb and old_cb.get("students"):
+        for s in old_cb["students"]:
+            if s.get("sid"):
+                old_by_sid[s["sid"]] = s
     new_codes = 0
     for item in roster:
         sid = item["sid"]
@@ -136,12 +141,22 @@ def main():
             new_codes += 1
         key_map[sid] = code
 
-    students = [{
-        "sid": item["sid"],
-        "name": item["name"],
-        "assignments": {},
-        "_origin": item["origin"],
-    } for item in roster]
+    students = []
+    for item in roster:
+        sid = item["sid"]
+        if sid in old_by_sid:
+            student = dict(old_by_sid[sid])
+            student["name"] = item["name"]
+            student["assignments"] = old_by_sid[sid].get("assignments", {}) or {}
+            student["_origin"] = item["origin"]
+        else:
+            student = {
+                "sid": sid,
+                "name": item["name"],
+                "assignments": {},
+                "_origin": item["origin"],
+            }
+        students.append(student)
 
     students.sort(key=lambda s: int(s["_origin"]) if s["_origin"].isdigit() else 1 << 30)
     for s in students:
