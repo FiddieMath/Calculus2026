@@ -1,8 +1,8 @@
 
 
-在下面的证明中, 我们全程用到了下面的简单结论：
+在下面的证明中，我们全程用到了下面的简单结论：
 
-> **命题：**若$\lbrace a_n\rbrace$是有界数列, $\lbrace b_n\rbrace$是收敛于0的数列, 则
+> **命题：** 若$\lbrace a_n\rbrace$是有界数列, $\lbrace b_n\rbrace$是收敛于0的数列, 则
 > 
 > $$\lim\limits_{n\to\infty}a_nb_n=0.$$
 

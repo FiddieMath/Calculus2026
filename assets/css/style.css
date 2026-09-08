@@ -141,7 +141,7 @@ code { font-family: Consolas, Menlo, monospace; font-size: 0.9em; background: rg
 }
 .cols {
   display: grid;
-  grid-template-columns: minmax(0, 3fr) minmax(260px, 1.1fr);
+  grid-template-columns: minmax(350px, 2fr) minmax(320px, 3fr);
   gap: 18px;
   align-items: start;
 }
@@ -195,6 +195,25 @@ code { font-family: Consolas, Menlo, monospace; font-size: 0.9em; background: rg
   vertical-align: 1px;
 }
 .tag-on { color: var(--green); border-color: rgba(45, 106, 79, 0.5); background: rgba(45, 106, 79, 0.06); }
+
+.chip {
+  display: inline-block;
+  padding: 3px 12px;
+  border-radius: 999px;
+  font-size: 13.5px;
+  white-space: nowrap;
+}
+a.chip { text-decoration: none; }
+.chip-blue {
+  background: #dcebf9;
+  color: #1f5f9e;
+}
+.chip-blue:hover { background: #c9e0f5; color: #174a7d; }
+.chip-green {
+  background: #dcefdf;
+  color: #22603f;
+}
+.chip-green:hover { background: #cce7d2; color: #194b31; }
 
 .st-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 6px; vertical-align: 2px; }
 .st-missing { color: var(--red-dark); }
@@ -321,6 +340,7 @@ code { font-family: Consolas, Menlo, monospace; font-size: 0.9em; background: rg
   .topbar { padding-top: 18px; }
   .page { padding-top: 4px; }
   .login-form { flex-direction: column; align-items: stretch; }
+  .login-form label { flex: 0 0 auto; }
   .paper { padding: 18px 16px; }
   .modal-mask { padding-top: 4vh; }
 }

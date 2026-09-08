@@ -137,12 +137,10 @@
           var contentPublished = a.content && a.content.published;
           var answerPublished = a.answer && a.answer.published;
           var contentHtml;
-          if (a.title && (contentPublished || answerPublished)) {
-            var tags = "";
-            if (contentPublished) tags += '<span class="tag tag-on">题目已更新</span>';
-            if (answerPublished) tags += '<span class="tag tag-on">答案已更新</span>';
+          if (contentPublished) {
+            var chipClass = answerPublished ? "chip-green" : "chip-blue";
             contentHtml =
-              '<a href="#/work/' + encodeURIComponent(a.slug) + '">' + esc(a.title) + "</a>" + tags;
+              '<a class="chip ' + chipClass + '" href="#/work/' + encodeURIComponent(a.slug) + '">点击查看</a>';
           } else {
             contentHtml = '<span class="empty">待更新</span>';
           }

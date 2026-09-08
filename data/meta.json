@@ -3,25 +3,25 @@
   "site": {
     "title": "微积分 · 作业查分台",
     "courseName": "《微积分（上）》",
-    "teacher": "Fiddie",
+    "teacher": "邓老师班",
     "semester": "2026–2027 学年 秋季学期",
-    "contact": "fiddie@example.com（请改成老师的真实邮箱）",
-    "policyNote": "参考答案仅用于批改后的核对，请先独立完成作业再查看。"
+    "contact": "……",
+    "policyNote": "参考答案仅用于批改后的核对．"
   },
   "materials": [
     {
       "slug": "e-transcendence",
-      "title": "补充内容：e 的超越性",
+      "title": "e 的超越性",
       "published": true
     },
     {
       "slug": "sin-n2",
-      "title": "补充内容：数列 {sin(n²)} 发散的证明",
+      "title": "数列 {sin(n²)} 发散的证明",
       "published": true
     },
     {
       "slug": "gauss-limit",
-      "title": "补充内容：一个极限的计算（Gauss 换元）",
+      "title": "一个极限的计算（Gauss 换元）",
       "published": true
     },
     {
