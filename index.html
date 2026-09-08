@@ -14,7 +14,7 @@
 
   <div id="demo-banner" class="demo-banner" hidden>
     <strong>演示模式</strong>
-    <span>学号 <code>20260001</code> · 查询码 <code>math2026</code>（正式启用时老师会关闭演示）</span>
+    <span>学号 <code>20260001</code> · 查询码 <code>20260001</code>（正式启用时老师会关闭演示）</span>
   </div>
 
   <header class="masthead">
@@ -63,7 +63,7 @@
           </li>
           <li>
             <span class="step-no">贰</span>
-            <div><strong>输入查询码</strong><small>老师私下下发的随机码</small></div>
+            <div><strong>输入查询码</strong><small>默认与学号相同，改过则用新码</small></div>
           </li>
           <li>
             <span class="step-no">叁</span>
@@ -91,7 +91,7 @@
         <div class="login-copy">
           <p class="hero-eyebrow">学生查询入口</p>
           <h2>登录后查看<br />只属于你的批改记录</h2>
-          <p>查询码是老师单独下发的，每位同学不同。若遗失，请联系老师重置。</p>
+          <p>默认情况下查询码就是你的学号；如果你私下找老师修改过，请输入修改后的新码。忘记新码请联系老师重置。</p>
         </div>
         <form id="login-form" class="login-form" novalidate>
           <label>
@@ -102,12 +102,12 @@
           <label>
             <span>查询码</span>
             <input id="login-code" name="code" type="password" autocomplete="off"
-                   placeholder="老师下发的查询码" required />
+                   placeholder="默认与学号相同" required />
           </label>
           <button class="btn btn-primary btn-block" type="submit">查 询</button>
           <p class="form-error" id="login-error" role="alert" hidden></p>
           <p class="login-hint demo-only" id="demo-hint" hidden>
-            演示：学号 20260001，查询码 math2026
+            演示：学号 20260001，查询码 20260001
           </p>
         </form>
       </div>

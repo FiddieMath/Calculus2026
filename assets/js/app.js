@@ -134,7 +134,7 @@
     $("#demo-hint").hidden = !demo;
     if (demo) {
       banner.innerHTML =
-        "<strong>演示模式</strong><span>学号 <code>20260001</code> · 查询码 <code>math2026</code>（正式启用时老师会关闭演示）</span>";
+        "<strong>演示模式</strong><span>学号 <code>20260001</code> · 查询码 <code>20260001</code>（正式启用时老师会关闭演示）</span>";
     }
   }
 
@@ -320,7 +320,7 @@
     });
     $("#demo-hint").addEventListener("click", function () {
       $("#login-sid").value = "20260001";
-      $("#login-code").value = "math2026";
+      $("#login-code").value = "20260001";
       $("#login-code").focus();
     });
     $("#me-record-list").addEventListener("click", function (ev) {
@@ -672,7 +672,7 @@
         try {
           var demoRec = getRecordBySid("20260001");
           if (demoRec) {
-            state.session = await CalcCrypto.decryptPayload(demoRec, "math2026");
+            state.session = await CalcCrypto.decryptPayload(demoRec, "20260001");
             saveSession(state.session);
             route();
           }

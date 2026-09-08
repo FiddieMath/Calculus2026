@@ -70,6 +70,8 @@
     .small { font-size: 13px; color: #7b8498; }
     .step { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px;
       border-radius: 50%; background: var(--red); color: #fff; font-weight: 700; margin-right: 8px; }
+    .chk { display: inline-flex; align-items: center; gap: 7px; margin: 10px 0 0; font-weight: 400; }
+    .chk input { width: 16px; height: 16px; }
   </style>
 </head>
 <body>
@@ -82,12 +84,13 @@
     <div class="warn">
       <strong>保密提醒：</strong> <code>查询码.csv</code> 与 <code>classbook.json</code>（成绩明文台账）必须保存在自己电脑的私有目录，
       <b>绝不能放进 GitHub 仓库</b>。仓库里只放工具生成的加密 <code>records.json</code>。
+      <br />默认查询码＝学号，此时知道学号就能查看对应记录（同学之间的隐私较弱）；希望更私密时，请用“贰”为学生设置随机码。
     </div>
 
     <!-- ① 初始化 -->
     <section class="panel">
       <h2><span class="step">壹</span>初始化班级：生成查询码与空白台账</h2>
-      <p class="desc">粘贴全班名单（每行：学号,姓名）。可同时上传旧台账与旧查询码表，保留已有记录和查询码。</p>
+      <p class="desc">粘贴全班名单（每行：学号,姓名）。<b>默认每位学生的查询码＝学号</b>；可同时上传旧台账与旧查询码表，保留已有记录和查询码。</p>
       <label for="roster">名单文本（逗号或 Tab 分隔均可）</label>
       <textarea id="roster" placeholder="学号,姓名&#10;20260001,张三&#10;20260002,李四"></textarea>
       <div class="filebox">
@@ -104,16 +107,17 @@
 
     <!-- ② 改码 -->
     <section class="panel">
-      <h2><span class="step">贰</span>修改查询码（学生遗忘/重置）</h2>
-      <p class="desc">上传现有 <code>查询码.csv</code>。可选择“全部重新生成”；或提供新码表（每行：学号,新查询码）。</p>
+      <h2><span class="step">贰</span>修改查询码（学生私下申请 / 遗忘重置）</h2>
+      <p class="desc">上传现有 <code>查询码.csv</code>。学生想换码时，把要修改的学号与新码填进“新码表”；也可以勾选“全部随机”为全班换成强随机码（更私密）。</p>
       <div class="row">
         <div class="filebox">
           <label class="filelabel" for="keys2">上传现有查询码.csv<input type="file" id="keys2" accept=".csv,text/plain" /></label>
           <span class="fname" id="keys2-name">未选择</span>
         </div>
         <div>
-          <label for="newkeys">新码表（可选；留空则全部重新生成）</label>
+          <label for="newkeys">新码表（只列要修改的学生；每行：学号,新查询码）</label>
           <textarea id="newkeys" style="min-height:100px" placeholder="学号,新查询码&#10;20260001,ab3de7xyzq"></textarea>
+          <label class="chk"><input type="checkbox" id="all-random" /> 全部换成随机码（不使用“学号”默认码）</label>
         </div>
       </div>
       <button class="btn" id="btn-rekey" type="button">生成新的 查询码.csv</button>
@@ -239,16 +243,16 @@
             oldKeys.list.forEach(function (k) { keysMap[k.sid] = k.code; });
           }
           cb.students.forEach(function (s) {
-            if (!keysMap[s.sid]) keysMap[s.sid] = CalcCrypto.randomCode(10);
+            if (!keysMap[s.sid]) keysMap[s.sid] = s.sid;
           });
           var keysCsv = CalcPublish.makeKeysCsv(cb.students, keysMap);
           download("查询码-" + stamp() + ".csv", keysCsv);
           download("classbook.json", jsonText(cb));
           logTo(box,
             "成功生成 " + cb.students.length + " 名学生的查询码" +
-            (kf ? "（保留已有查询码，仅新增学生生成新码）" : "（全部为新随机码）") + "。\n" +
+            (kf ? "（保留已有查询码；新增学生默认查询码＝学号）" : "（默认每位学生查询码＝学号）") + "。\n" +
             "下载了两个文件：\n" +
-            "  · 查询码-*.csv  → 私发给学生；\n" +
+            "  · 查询码-*.csv  → 发布时上传到“叁”，切勿放进仓库；\n" +
             "  · classbook.json → 存放在私有目录作台账。");
         } catch (e) {
           logTo(box, "出错了：" + e.message, "error");
@@ -265,16 +269,35 @@
           var newText = document.getElementById("newkeys").value.trim();
           var newRows = newText ? CalcPublish.parseTable(newText) : [];
           var newMap = {};
+          var notFound = [];
           newRows.forEach(function (r) {
-            if (r[0] && r[1]) newMap[String(r[0]).trim()] = String(r[1]).trim();
+            if (r[0] && r[1]) {
+              newMap[String(r[0]).trim()] = String(r[1]).trim();
+              if (!old.map[String(r[0]).trim()]) notFound.push(String(r[0]).trim());
+            }
           });
+          var allRandom = document.getElementById("all-random").checked;
+          if (!newText && !allRandom) {
+            logTo(box, "请填写“新码表”（学号,新查询码），或勾选“全部换成随机码”。", "error");
+            return;
+          }
           var lines = ["学号,姓名,查询码"];
+          var changed = 0;
           old.list.forEach(function (k) {
-            var code = newMap[k.sid] || CalcCrypto.randomCode(10);
+            var code;
+            if (allRandom) code = CalcCrypto.randomCode(10);
+            else if (newMap[k.sid]) code = newMap[k.sid];
+            else code = k.code;
+            if (code !== k.code) changed++;
             lines.push(k.sid + "," + (k.name || k.sid) + "," + code);
           });
           download("查询码-" + stamp() + ".csv", "\uFEFF" + lines.join("\r\n"));
-          logTo(box, "已生成新查询码表：" + out.length + " 条。\n新码请私发学生，并重新运行“叁”生成 records.json。");
+          var msg =
+            "已生成新查询码表，共 " + (lines.length - 1) + " 条，其中 " + changed + " 条发生修改。\n" +
+            (allRandom ? "已为全部学生换成随机码。\n" : "未列入新码表的学生保持原码（默认＝学号）。\n") +
+            "新码请私下告知学生，并重新运行“叁”生成 records.json 后发布。";
+          if (notFound.length) msg += "\n提醒：新码表里有 " + notFound.length + " 个学号不在现有查询码表中：" + notFound.join("、");
+          logTo(box, msg, notFound.length ? "warn" : "");
         } catch (e) {
           logTo(box, "出错了：" + e.message, "error");
         }
