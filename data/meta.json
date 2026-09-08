@@ -10,6 +10,21 @@
   },
   "materials": [
     {
+      "slug": "e-transcendence",
+      "title": "补充内容：e 的超越性",
+      "published": true
+    },
+    {
+      "slug": "sin-n2",
+      "title": "补充内容：数列 {sin(n²)} 发散的证明",
+      "published": true
+    },
+    {
+      "slug": "gauss-limit",
+      "title": "补充内容：一个极限的计算（Gauss 换元）",
+      "published": true
+    },
+    {
       "slug": "midterm-review",
       "title": "期中考试讲解",
       "published": false
@@ -19,7 +34,6 @@
     {
       "slug": "hw01",
       "title": "第一次作业：函数与极限",
-      "due": "2026-09-18T23:59:00+08:00",
       "content": {
         "published": true
       },
@@ -30,27 +44,88 @@
     },
     {
       "slug": "hw02",
-      "title": "第二次作业：函数的连续性",
-      "due": "2026-09-25T23:59:00+08:00",
-      "content": {
-        "published": false
-      },
-      "answer": {
-        "published": false,
-        "requiresSubmission": false
-      }
+      "content": { "published": false },
+      "answer": { "published": false, "requiresSubmission": false }
     },
     {
       "slug": "hw03",
-      "title": "第三次作业：导数与微分",
-      "due": "2026-10-09T23:59:00+08:00",
-      "content": {
-        "published": false
-      },
-      "answer": {
-        "published": false,
-        "requiresSubmission": false
-      }
+      "content": { "published": false },
+      "answer": { "published": false, "requiresSubmission": false }
+    },
+    {
+      "slug": "hw04",
+      "content": { "published": false },
+      "answer": { "published": false, "requiresSubmission": false }
+    },
+    {
+      "slug": "hw05",
+      "content": { "published": false },
+      "answer": { "published": false, "requiresSubmission": false }
+    },
+    {
+      "slug": "hw06",
+      "content": { "published": false },
+      "answer": { "published": false, "requiresSubmission": false }
+    },
+    {
+      "slug": "hw07",
+      "content": { "published": false },
+      "answer": { "published": false, "requiresSubmission": false }
+    },
+    {
+      "slug": "hw08",
+      "content": { "published": false },
+      "answer": { "published": false, "requiresSubmission": false }
+    },
+    {
+      "slug": "hw09",
+      "content": { "published": false },
+      "answer": { "published": false, "requiresSubmission": false }
+    },
+    {
+      "slug": "hw10",
+      "content": { "published": false },
+      "answer": { "published": false, "requiresSubmission": false }
+    },
+    {
+      "slug": "hw11",
+      "content": { "published": false },
+      "answer": { "published": false, "requiresSubmission": false }
+    },
+    {
+      "slug": "hw12",
+      "content": { "published": false },
+      "answer": { "published": false, "requiresSubmission": false }
+    },
+    {
+      "slug": "hw13",
+      "content": { "published": false },
+      "answer": { "published": false, "requiresSubmission": false }
+    },
+    {
+      "slug": "hw14",
+      "content": { "published": false },
+      "answer": { "published": false, "requiresSubmission": false }
+    },
+    {
+      "slug": "hw15",
+      "content": { "published": false },
+      "answer": { "published": false, "requiresSubmission": false }
+    },
+    {
+      "slug": "hw16",
+      "content": { "published": false },
+      "answer": { "published": false, "requiresSubmission": false }
+    },
+    {
+      "slug": "hw17",
+      "content": { "published": false },
+      "answer": { "published": false, "requiresSubmission": false }
+    },
+    {
+      "slug": "hw18",
+      "content": { "published": false },
+      "answer": { "published": false, "requiresSubmission": false }
     }
   ]
 }

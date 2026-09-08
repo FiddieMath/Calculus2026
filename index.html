@@ -6,8 +6,8 @@
   <title>微积分 · 作业查分台</title>
   <meta name="description" content="微积分课程作业完成情况与资料查询" />
   <link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml" />
-  <link rel="stylesheet" href="assets/vendor/katex/katex.min.css?v=20260908" />
-  <link rel="stylesheet" href="assets/css/style.css?v=20260908" />
+  <link rel="stylesheet" href="assets/vendor/katex/katex.min.css?v=20260908b" />
+  <link rel="stylesheet" href="assets/css/style.css?v=20260908b" />
 </head>
 <body>
   <p id="demo-banner" class="demo-banner" hidden>
@@ -41,35 +41,37 @@
         <p class="whoami" id="whoami" hidden></p>
       </section>
 
-      <section class="panel" aria-labelledby="assign-head">
-        <div class="panel-head">
-          <h2 id="assign-head">作业安排</h2>
-          <span class="muted">点击作业名称查看题目与参考答案</span>
-        </div>
-        <div class="table-wrap">
-          <table class="tbl">
-            <thead>
-              <tr><th>作业次数</th><th>截止时间</th><th>作业内容</th></tr>
-            </thead>
-            <tbody id="assign-rows"></tbody>
-          </table>
-        </div>
-      </section>
+      <div class="cols">
+        <section class="panel" aria-labelledby="assign-head">
+          <div class="panel-head">
+            <h2 id="assign-head">作业安排</h2>
+            <span class="muted">点击作业名称查看题目与参考答案</span>
+          </div>
+          <div class="table-wrap">
+            <table class="tbl">
+              <thead>
+                <tr><th>作业次数</th><th>截止时间</th><th>作业内容</th></tr>
+              </thead>
+              <tbody id="assign-rows"></tbody>
+            </table>
+          </div>
+        </section>
 
-      <section class="panel" aria-labelledby="material-head">
-        <div class="panel-head">
-          <h2 id="material-head">附加资料</h2>
-          <span class="muted">期中考试讲解、知识点梳理等将陆续添加</span>
-        </div>
-        <div class="table-wrap">
-          <table class="tbl">
-            <thead>
-              <tr><th>资料名称</th><th>状态</th></tr>
-            </thead>
-            <tbody id="material-rows"></tbody>
-          </table>
-        </div>
-      </section>
+        <section class="panel" aria-labelledby="material-head">
+          <div class="panel-head">
+            <h2 id="material-head">附加资料</h2>
+            <span class="muted">课外补充阅读，将陆续添加</span>
+          </div>
+          <div class="table-wrap">
+            <table class="tbl">
+              <thead>
+                <tr><th>资料名称</th><th>状态</th></tr>
+              </thead>
+              <tbody id="material-rows"></tbody>
+            </table>
+          </div>
+        </section>
+      </div>
     </section>
 
     <!-- 作业详情 -->
@@ -112,9 +114,9 @@
     </div>
   </div>
 
-  <script src="assets/js/crypto-core.js?v=20260908"></script>
-  <script src="assets/vendor/marked/marked.min.js?v=20260908"></script>
-  <script src="assets/vendor/katex/katex.min.js?v=20260908"></script>
-  <script src="assets/js/app.js?v=20260908"></script>
+  <script src="assets/js/crypto-core.js?v=20260908b"></script>
+  <script src="assets/vendor/marked/marked.min.js?v=20260908b"></script>
+  <script src="assets/vendor/katex/katex.min.js?v=20260908b"></script>
+  <script src="assets/js/app.js?v=20260908b"></script>
 </body>
 </html>

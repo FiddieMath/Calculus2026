@@ -28,7 +28,7 @@
 │  └─ hw01.md                 # 作业题目（布置后上传，主页标记“题目已更新”）
 ├─ answers/
 │  └─ hw01.md                 # 参考答案（Markdown + LaTeX 公式），公布后再上传
-├─ materials/                 # 附加资料（期中讲解等），登记到 meta.json 后展示
+├─ materials/                 # 附加资料（已含 3 份补充阅读；期中讲解等后续加入），登记到 meta.json 后展示
 ├─ assets/
 │  ├─ css/style.css
 │  ├─ js/  app.js、crypto-core.js、publish-logic.js
@@ -83,7 +83,7 @@ https://fiddiemath.github.io/Calculus2026/
 
 ## 4. 开学首次配置
 
-1. **修改课程信息**：编辑 `data/meta.json` 里的 `site`（课程名、老师、联系方式），按周维护 `assignments`（作业清单），`materials`（附加资料登记）可先留空或放“筹备中”条目。
+1. **修改课程信息**：编辑 `data/meta.json` 里的 `site`（课程名、老师、联系方式），按周维护 `assignments`（默认预置 18 次，截止时间与第 2–18 次内容为“待更新”），`materials`（附加资料登记，已预置 3 份补充阅读与“期中考试讲解”占位）。
 2. **生成查询码**：浏览器打开 `tools/publish.html`，在“① 初始化班级”中粘贴全班“学号,姓名”名单，点生成，会下载两个文件。**默认每个学生的查询码就是他的学号**：
    - `classbook.json`：教师台账（含成绩明文），**保密保存，不要上传仓库**；
    - `查询码.csv`：每个学生一个查询码（默认＝学号），**不要上传仓库**；只需在班里公布“查询码默认是你的学号”。

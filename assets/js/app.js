@@ -134,16 +134,26 @@
     var list = state.meta.assignments || [];
     $("#assign-rows").innerHTML = list.length
       ? list.map(function (a, i) {
-          var tags = "";
-          if (a.content && a.content.published) tags += '<span class="tag tag-on">题目已更新</span>';
-          if (a.answer && a.answer.published) tags += '<span class="tag tag-on">答案已更新</span>';
-          if (!tags) tags = '<span class="tag">待更新</span>';
-          var dueTag = isOverdue(a.due) ? '<span class="tag">已截止</span>' : "";
+          var contentPublished = a.content && a.content.published;
+          var answerPublished = a.answer && a.answer.published;
+          var contentHtml;
+          if (a.title && (contentPublished || answerPublished)) {
+            var tags = "";
+            if (contentPublished) tags += '<span class="tag tag-on">题目已更新</span>';
+            if (answerPublished) tags += '<span class="tag tag-on">答案已更新</span>';
+            contentHtml =
+              '<a href="#/work/' + encodeURIComponent(a.slug) + '">' + esc(a.title) + "</a>" + tags;
+          } else {
+            contentHtml = '<span class="empty">待更新</span>';
+          }
+          var dueHtml = a.due
+            ? esc(fmtDate(a.due)) + (isOverdue(a.due) ? ' <span class="tag">已截止</span>' : "")
+            : "";
           return (
             '<tr>' +
             '<td class="num">第 ' + (i + 1) + " 次</td>" +
-            '<td class="num">' + esc(fmtDate(a.due)) + " " + dueTag + "</td>" +
-            '<td><a href="#/work/' + encodeURIComponent(a.slug) + '">' + esc(a.title) + "</a>" + tags + "</td>" +
+            '<td class="num">' + dueHtml + "</td>" +
+            "<td>" + contentHtml + "</td>" +
             "</tr>"
           );
         }).join("")
@@ -205,9 +215,19 @@
     var list = state.meta.assignments || [];
     $("#status-rows").innerHTML = list.length
       ? list.map(function (a, i) {
-          var rec = (p.assignments || {})[a.slug] || { status: "missing" };
-          var st = STATUS_TEXT[rec.status] || rec.status || "未交";
-          var stCls = STATUS_CLASS[rec.status] || "st-missing";
+          var assignments = p.assignments || {};
+          var rec = assignments[a.slug] || { status: "missing" };
+          var hasRec = !!assignments[a.slug];
+          var st, stCls;
+          if (hasRec) {
+            st = STATUS_TEXT[rec.status] || rec.status || "未交";
+            stCls = STATUS_CLASS[rec.status] || "st-missing";
+          } else {
+            var announced =
+              a.due || (a.content && a.content.published) || (a.answer && a.answer.published);
+            st = announced ? "未交" : "未布置";
+            stCls = announced ? "st-missing" : "st-pending";
+          }
           var hasScore =
             (rec.status === "graded" || rec.status === "late_graded") &&
             typeof rec.score === "number";
@@ -218,7 +238,7 @@
           return (
             "<tr>" +
             '<td class="num">第 ' + (i + 1) + " 次</td>" +
-            '<td class="num">' + esc(fmtDate(a.due)) + (isOverdue(a.due) ? ' <span class="tag">已截止</span>' : "") + "</td>" +
+            '<td class="num">' + (a.due ? esc(fmtDate(a.due)) + (isOverdue(a.due) ? ' <span class="tag">已截止</span>' : "") : "") + "</td>" +
             '<td><span class="' + stCls + '"><span class="st-dot"></span>' + esc(st) + "</span></td>" +
             '<td class="score">' + score + "</td>" +
             '<td class="comment-cell">' + comment + "</td>" +
@@ -282,6 +302,7 @@
     var a = findAssignment(slug);
     var work = $("#view-assignment");
     var home = $("#view-home");
+    var metaList = state.meta.assignments || [];
     home.hidden = true;
     work.hidden = false;
 
@@ -292,9 +313,15 @@
       $("#work-answer").innerHTML = "";
       return;
     }
-    $("#work-title").textContent = a.title;
+    var idx = 0;
+    for (var j = 0; j < metaList.length; j++) {
+      if (metaList[j].slug === slug) idx = j;
+    }
+    $("#work-title").textContent = a.title || "第 " + (idx + 1) + " 次作业";
     $("#work-due").textContent =
-      "截止时间：" + fmtDate(a.due) + (isOverdue(a.due) ? "（已截止）" : "");
+      a.due
+        ? "截止时间：" + fmtDate(a.due) + (isOverdue(a.due) ? "（已截止）" : "")
+        : "";
 
     var contentBox = $("#work-content");
     var answerBox = $("#work-answer");

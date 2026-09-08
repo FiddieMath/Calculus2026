@@ -139,6 +139,17 @@ code { font-family: Consolas, Menlo, monospace; font-size: 0.9em; background: rg
   padding: 18px 20px 8px;
   margin-bottom: 18px;
 }
+.cols {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(260px, 1.1fr);
+  gap: 18px;
+  align-items: start;
+}
+.cols .panel { margin-bottom: 0; }
+.cols .panel-head { display: block; }
+.cols .panel-head h2 { margin-bottom: 2px; }
+.cols .panel-head .muted { display: block; margin-bottom: 8px; }
+.cols .tbl td { padding: 8px 10px; }
 .panel-head {
   display: flex;
   justify-content: space-between;
@@ -196,6 +207,8 @@ code { font-family: Consolas, Menlo, monospace; font-size: 0.9em; background: rg
 .st-graded .st-dot { background: var(--green); }
 .st-late-graded { color: var(--orange); }
 .st-late-graded .st-dot { background: var(--orange); }
+.st-pending { color: var(--ink-3); }
+.st-pending .st-dot { background: var(--ink-3); }
 .score { font-family: var(--num); font-size: 15px; }
 .comment-cell { color: var(--ink-2); font-size: 14px; max-width: 260px; }
 
@@ -310,6 +323,11 @@ code { font-family: Consolas, Menlo, monospace; font-size: 0.9em; background: rg
   .login-form { flex-direction: column; align-items: stretch; }
   .paper { padding: 18px 16px; }
   .modal-mask { padding-top: 4vh; }
+}
+
+@media (max-width: 860px) {
+  .cols { grid-template-columns: 1fr; }
+  .cols .panel { margin-bottom: 18px; }
 }
 
 @media print {
