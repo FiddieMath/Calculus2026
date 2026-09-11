@@ -87,6 +87,17 @@ def masked_sid(sid):
     return sid[:2] + "*" * (len(sid) - 4) + sid[-2:]
 
 
+def mask_addr(addr):
+    local, _, domain = (addr or "").partition("@")
+    if local.isdigit():
+        local = masked_sid(local)
+    elif local:
+        local = local[0] + "***"
+    else:
+        local = "***"
+    return local + ("@" + domain if domain else "")
+
+
 def build_sid_regex(domain):
     return re.compile(r"^(?P<sid>\d{6,12})@" + re.escape(domain) + r"$", re.IGNORECASE)
 
@@ -212,6 +223,7 @@ def run_bot(args):
             # 只检查来自学生邮箱域名的未读邮件，避免触碰其它私人邮件
             status, data = imap.search(None, "UNSEEN", "FROM", cfg["allowed_domain"])
         except imaplib.IMAP4.error:
+            print("提示：邮箱服务器不支持按域名筛选，本次检查所有未读邮件（不会标记未回复邮件为已读）。")
             status, data = imap.search(None, "UNSEEN")
         if status != "OK":
             raise SystemExit("IMAP 搜索失败：%s" % status)
@@ -229,6 +241,7 @@ def run_bot(args):
                 typ, msg_data = imap.fetch(num, "(BODY.PEEK[HEADER])")
                 if typ != "OK" or not msg_data or not isinstance(msg_data[0], tuple):
                     skipped += 1
+                    print("跳过：邮件头读取失败")
                     continue
                 msg = message_from_bytes(msg_data[0][1])
                 sender = sender_address(msg)
@@ -236,25 +249,31 @@ def run_bot(args):
 
                 if sender == target:
                     skipped += 1
+                    print("跳过：发件人就是查询邮箱本身（%s）" % mask_addr(sender))
                     continue
                 if not match:
                     skipped += 1
+                    print("跳过：发件地址不是“学号@%s”格式（%s）" % (cfg["allowed_domain"], mask_addr(sender)))
                     continue
                 if not (direct_recipients(msg) & {target}):
                     skipped += 1
+                    print("跳过：这封邮件不是直接发给查询邮箱的（可能用了别名、转发或密送）")
                     continue
                 if is_auto_or_reply(msg):
                     skipped += 1
+                    print("跳过：这封邮件看起来是自动回复或 Re: 回复邮件")
                     continue
 
                 sid = match.group("sid")
                 entry = keys.get(sid)
                 if not entry:
                     skipped += 1
+                    print("跳过：学号 %s 不在本班查询码表中" % masked_sid(sid))
                     continue
                 if sid in seen_senders_this_run:
                     duplicate = True
                     skipped += 1
+                    print("跳过：同一学生本次重复来信（%s）" % masked_sid(sid))
                 else:
                     seen_senders_this_run.add(sid)
                     name, code = entry
