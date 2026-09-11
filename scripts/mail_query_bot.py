@@ -18,6 +18,9 @@
 本地模拟某个学生查询（不联网、不发送）：
   python scripts/mail_query_bot.py --keys-file "E:\\TA\\2026Autumn\\keys.csv" \
       --simulate-from 221900153@smail.nju.edu.cn
+
+长轮询模式（GitHub Actions 使用）：
+  python scripts/mail_query_bot.py --watch-minutes 55 --interval-seconds 60
 """
 
 import argparse
@@ -30,6 +33,7 @@ import re
 import smtplib
 import ssl
 import sys
+import time
 from datetime import datetime, timedelta, timezone
 from email import message_from_bytes, policy
 from email.message import EmailMessage
@@ -182,22 +186,161 @@ def build_reply(mail_user, to_addr, name, code, site_url, course_name):
     return msg
 
 
-def smtp_connect(host, port, security, user, auth_code):
+def smtp_connect(cfg):
     context = ssl.create_default_context()
-    if security == "ssl":
-        client = smtplib.SMTP_SSL(host, port, timeout=30, context=context)
+    if cfg["smtp_security"] == "ssl":
+        client = smtplib.SMTP_SSL(
+            cfg["smtp_host"], cfg["smtp_port"], timeout=30, context=context
+        )
     else:
-        client = smtplib.SMTP(host, port, timeout=30)
+        client = smtplib.SMTP(cfg["smtp_host"], cfg["smtp_port"], timeout=30)
         client.ehlo()
-        if security == "starttls":
+        if cfg["smtp_security"] == "starttls":
             client.starttls(context=context)
             client.ehlo()
-    client.login(user, auth_code)
+    client.login(cfg["mail_user"], cfg["auth_code"])
     return client
 
 
-def run_bot(args):
-    cfg = {
+def open_imap(cfg):
+    context = ssl.create_default_context()
+    imap = imaplib.IMAP4_SSL(cfg["imap_host"], cfg["imap_port"], ssl_context=context)
+    imap.login(cfg["mail_user"], cfg["auth_code"])
+    imap.select("INBOX")
+    return imap
+
+
+def close_quietly(obj):
+    if obj is None:
+        return None
+    try:
+        if isinstance(obj, smtplib.SMTP):
+            obj.quit()
+        else:
+            obj.logout()
+    except Exception:
+        pass
+    return None
+
+
+def process_unread(imap, cfg, keys, sid_re, skip_logged, smtp):
+    """检查一遍未读邮件；返回 (本轮计数, 可能新建的 SMTP 连接)。"""
+    counts = {"scanned": 0, "replied": 0, "skipped": 0, "failed": 0}
+    target = cfg["mail_user"].lower()
+
+    def log_skip(uid, message):
+        if uid not in skip_logged:
+            skip_logged.add(uid)
+            print(message)
+
+    try:
+        # 只检查来自学生邮箱域名的未读邮件，避免触碰其它私人邮件
+        status, data = imap.uid("search", None, "UNSEEN", "FROM", cfg["allowed_domain"])
+    except imaplib.IMAP4.error:
+        print("提示：邮箱服务器不支持按域名筛选，本次检查所有未读邮件（不会标记未回复邮件为已读）。")
+        status, data = imap.uid("search", None, "UNSEEN")
+    if status != "OK":
+        raise RuntimeError("IMAP 搜索失败：%s" % status)
+
+    uids = (data[0] or b"").split()
+    if uids:
+        print("待检查的未读邮件数：%d" % len(uids))
+    seen_senders_this_run = set()
+
+    for uid in uids[: cfg["max_per_run"]]:
+        counts["scanned"] += 1
+        sending = False
+        replied_this = False
+        duplicate = False
+        try:
+            # 只取邮件头，不下载正文，也不改变“已读”状态
+            typ, msg_data = imap.uid("fetch", uid, "(BODY.PEEK[HEADER])")
+            if typ != "OK" or not msg_data or not isinstance(msg_data[0], tuple):
+                counts["skipped"] += 1
+                log_skip(uid, "跳过：邮件头读取失败")
+                continue
+            msg = message_from_bytes(msg_data[0][1], policy=policy.default)
+            sender = sender_address(msg)
+            match = sid_re.match(sender)
+
+            if sender == target:
+                counts["skipped"] += 1
+                log_skip(uid, "跳过：发件人就是查询邮箱本身（%s）" % mask_addr(sender))
+                continue
+            if not match:
+                counts["skipped"] += 1
+                log_skip(
+                    uid,
+                    "跳过：发件地址不是“学号@%s”格式（%s）"
+                    % (cfg["allowed_domain"], mask_addr(sender)),
+                )
+                continue
+            if not (direct_recipients(msg) & {target}):
+                counts["skipped"] += 1
+                log_skip(uid, "跳过：这封邮件不是直接发给查询邮箱的（可能用了别名、转发或密送）")
+                continue
+            if is_auto_or_reply(msg):
+                counts["skipped"] += 1
+                log_skip(uid, "跳过：这封邮件看起来是自动回复或 Re: 回复邮件")
+                continue
+            subject = str(msg.get("Subject") or "")
+            if not subject_allowed(subject, cfg["subject_keyword"]):
+                counts["skipped"] += 1
+                log_skip(
+                    uid,
+                    "跳过：邮件主题未包含“%s”（主题内容已隐藏）" % cfg["subject_keyword"],
+                )
+                continue
+
+            sid = match.group("sid")
+            entry = keys.get(sid)
+            if not entry:
+                counts["skipped"] += 1
+                log_skip(uid, "跳过：学号 %s 不在本班查询码表中" % masked_sid(sid))
+                continue
+            if sid in seen_senders_this_run:
+                duplicate = True
+                counts["skipped"] += 1
+                log_skip(uid, "跳过：同一学生本次重复来信（%s）" % masked_sid(sid))
+            else:
+                seen_senders_this_run.add(sid)
+                name, code = entry
+                if cfg["dry_run"]:
+                    print("DRY-RUN 将回复：%s（内容已隐藏）" % masked_sid(sid))
+                    counts["replied"] += 1
+                else:
+                    reply = build_reply(
+                        cfg["mail_user"], sender, name, code,
+                        cfg["site_url"], cfg["course_name"],
+                    )
+                    sending = True
+                    if smtp is None:
+                        smtp = smtp_connect(cfg)
+                    smtp.send_message(reply)
+                    sending = False
+                    print("已回复：%s" % masked_sid(sid))
+                    counts["replied"] += 1
+                    replied_this = True
+        except Exception as exc:  # 单封失败不影响其它邮件
+            counts["failed"] += 1
+            print("处理失败：%s: %s" % (type(exc).__name__, exc))
+            if sending:
+                # 发信失败时丢弃连接，下一轮重连重试；邮件保持未读。
+                smtp = close_quietly(smtp)
+        finally:
+            # 只对“已成功回复”或“同一学生本次重复来信”的邮件标记已读；
+            # 其它未匹配邮件一律保持未读，不影响老师正常收信。
+            if (replied_this or duplicate) and not cfg["dry_run"]:
+                try:
+                    imap.uid("store", uid, "+FLAGS", "\\Seen")
+                except Exception as exc:
+                    print("标记已读失败：%s" % exc)
+
+    return counts, smtp
+
+
+def build_config(args):
+    return {
         "mail_user": env("MAIL_USER"),
         "auth_code": env("MAIL_AUTH_CODE"),
         "imap_host": env("IMAP_HOST", "imap.exmail.qq.com"),
@@ -213,6 +356,17 @@ def run_bot(args):
         "max_per_run": args.max_per_run or env_int("MAIL_BOT_MAX_PER_RUN", 200),
         "dry_run": args.dry_run or env("MAIL_BOT_DRY_RUN", "").lower() in ("1", "true", "yes"),
     }
+
+
+def summary_text(counts, dry_run):
+    return "检查 %d 封，回复 %d 封，跳过 %d 封，失败 %d 封（%s）" % (
+        counts["scanned"], counts["replied"], counts["skipped"], counts["failed"],
+        "演练模式，未发送也未标记已读" if dry_run else "仅回复成功的邮件被标记已读",
+    )
+
+
+def run_bot(args):
+    cfg = build_config(args)
     if cfg["end_date"] and shanghai_today().isoformat() > cfg["end_date"]:
         print("已过邮件机器人截止日期 %s，本次不做任何操作。" % cfg["end_date"])
         return 0
@@ -222,133 +376,79 @@ def run_bot(args):
     keys = parse_keys(load_keys_text(args))
     if not keys:
         raise SystemExit("查询码表为空，请检查 QUERY_KEYS_B64 / QUERY_KEYS_CSV / --keys-file。")
-
     sid_re = build_sid_regex(cfg["allowed_domain"])
-    target = cfg["mail_user"].lower()
-    scanned = replied = skipped = failed = 0
 
-    context = ssl.create_default_context()
-    imap = imaplib.IMAP4_SSL(cfg["imap_host"], cfg["imap_port"], ssl_context=context)
-    imap.login(cfg["mail_user"], cfg["auth_code"])
-    imap.select("INBOX")
+    # 演练模式只做一遍，避免在长轮询里反复输出同一批“将回复”。
+    watch_minutes = 0 if cfg["dry_run"] else args.watch_minutes
+    interval = max(15, args.interval_seconds)
 
+    if watch_minutes <= 0:
+        imap = open_imap(cfg)
+        smtp = None
+        try:
+            counts, smtp = process_unread(imap, cfg, keys, sid_re, set(), smtp)
+        finally:
+            close_quietly(smtp)
+            close_quietly(imap)
+        print("本次完成：" + summary_text(counts, cfg["dry_run"]))
+        return 1 if counts["failed"] else 0
+
+    totals = {"scanned": 0, "replied": 0, "skipped": 0, "failed": 0}
+    start_at = time.monotonic()
+    end_at = start_at + watch_minutes * 60
+    imap = None
     smtp = None
-    if not cfg["dry_run"]:
-        smtp = smtp_connect(
-            cfg["smtp_host"], cfg["smtp_port"], cfg["smtp_security"],
-            cfg["mail_user"], cfg["auth_code"],
-        )
-
+    skip_logged = set()
+    cycle = 0
+    quiet_cycles = 0
+    print("进入长轮询：最多 %d 分钟，每 %d 秒检查一次。" % (watch_minutes, interval))
     try:
-        try:
-            # 只检查来自学生邮箱域名的未读邮件，避免触碰其它私人邮件
-            status, data = imap.search(None, "UNSEEN", "FROM", cfg["allowed_domain"])
-        except imaplib.IMAP4.error:
-            print("提示：邮箱服务器不支持按域名筛选，本次检查所有未读邮件（不会标记未回复邮件为已读）。")
-            status, data = imap.search(None, "UNSEEN")
-        if status != "OK":
-            raise SystemExit("IMAP 搜索失败：%s" % status)
-        numbers = (data[0] or b"").split()
-        print("待检查的未读邮件数：%d" % len(numbers))
-        seen_senders_this_run = set()
-
-        for num in numbers[: cfg["max_per_run"]]:
-            scanned += 1
-            sending = False
-            replied_this = False
-            duplicate = False
+        while True:
+            cycle += 1
             try:
-                # 只取邮件头，不下载正文，也不改变“已读”状态
-                typ, msg_data = imap.fetch(num, "(BODY.PEEK[HEADER])")
-                if typ != "OK" or not msg_data or not isinstance(msg_data[0], tuple):
-                    skipped += 1
-                    print("跳过：邮件头读取失败")
-                    continue
-                msg = message_from_bytes(msg_data[0][1], policy=policy.default)
-                sender = sender_address(msg)
-                match = sid_re.match(sender)
-
-                if sender == target:
-                    skipped += 1
-                    print("跳过：发件人就是查询邮箱本身（%s）" % mask_addr(sender))
-                    continue
-                if not match:
-                    skipped += 1
-                    print("跳过：发件地址不是“学号@%s”格式（%s）" % (cfg["allowed_domain"], mask_addr(sender)))
-                    continue
-                if not (direct_recipients(msg) & {target}):
-                    skipped += 1
-                    print("跳过：这封邮件不是直接发给查询邮箱的（可能用了别名、转发或密送）")
-                    continue
-                if is_auto_or_reply(msg):
-                    skipped += 1
-                    print("跳过：这封邮件看起来是自动回复或 Re: 回复邮件")
-                    continue
-                subject = str(msg.get("Subject") or "")
-                if not subject_allowed(subject, cfg["subject_keyword"]):
-                    skipped += 1
+                if imap is None:
+                    imap = open_imap(cfg)
+                counts, smtp = process_unread(imap, cfg, keys, sid_re, skip_logged, smtp)
+                for key in totals:
+                    totals[key] += counts[key]
+                if counts["replied"] or counts["failed"]:
                     print(
-                        "跳过：邮件主题未包含“%s”（主题内容已隐藏）"
-                        % cfg["subject_keyword"]
+                        "第 %d 轮：检查 %d 封，回复 %d 封，跳过 %d 封，失败 %d 封"
+                        % (cycle, counts["scanned"], counts["replied"],
+                           counts["skipped"], counts["failed"])
                     )
-                    continue
-
-                sid = match.group("sid")
-                entry = keys.get(sid)
-                if not entry:
-                    skipped += 1
-                    print("跳过：学号 %s 不在本班查询码表中" % masked_sid(sid))
-                    continue
-                if sid in seen_senders_this_run:
-                    duplicate = True
-                    skipped += 1
-                    print("跳过：同一学生本次重复来信（%s）" % masked_sid(sid))
+                    quiet_cycles = 0
                 else:
-                    seen_senders_this_run.add(sid)
-                    name, code = entry
-                    if cfg["dry_run"]:
-                        print("DRY-RUN 将回复：%s（内容已隐藏）" % masked_sid(sid))
-                        replied += 1
-                    else:
-                        reply = build_reply(
-                            cfg["mail_user"], sender, name, code,
-                            cfg["site_url"], cfg["course_name"],
-                        )
-                        sending = True
-                        smtp.send_message(reply)
-                        sending = False
-                        print("已回复：%s" % masked_sid(sid))
-                        replied += 1
-                        replied_this = True
-            except Exception as exc:  # 单封失败不影响其它邮件
-                failed += 1
-                print("处理失败：%s: %s" % (type(exc).__name__, exc))
-                # 发信失败或解析出错都保持未读：发信下次重试，非查询邮件不误标已读
-            finally:
-                # 只对“已成功回复”或“同一学生本次重复来信”的邮件标记已读；
-                # 其它未匹配邮件一律保持未读，不影响老师正常收信。
-                if (replied_this or duplicate) and not cfg["dry_run"]:
-                    try:
-                        imap.store(num, "+FLAGS", "\\Seen")
-                    except Exception as exc:
-                        print("标记已读失败：%s" % exc)
+                    quiet_cycles += 1
+            except Exception as exc:
+                totals["failed"] += 1
+                print("第 %d 轮连接/处理失败：%s: %s" % (cycle, type(exc).__name__, exc))
+                imap = close_quietly(imap)
+                smtp = close_quietly(smtp)
+                quiet_cycles = 0
+
+            if cfg["end_date"] and shanghai_today().isoformat() > cfg["end_date"]:
+                print("已过截止日期 %s，结束长轮询。" % cfg["end_date"])
+                break
+            now = time.monotonic()
+            if now >= end_at:
+                break
+            if quiet_cycles and quiet_cycles % 20 == 0:
+                print(
+                    "心跳：已运行 %.0f 分钟，第 %d 轮，暂无需要回复的邮件。"
+                    % ((now - start_at) / 60.0, cycle)
+                )
+                quiet_cycles = 0
+            time.sleep(min(interval, max(0.0, end_at - now)))
     finally:
-        if smtp is not None:
-            try:
-                smtp.quit()
-            except Exception:
-                pass
-        try:
-            imap.logout()
-        except Exception:
-            pass
+        close_quietly(smtp)
+        close_quietly(imap)
 
     print(
-        "本次完成：检查 %d 封，回复 %d 封，跳过 %d 封，失败 %d 封（%s）"
-        % (scanned, replied, skipped, failed,
-           "演练模式，未发送也未标记已读" if cfg["dry_run"] else "仅回复成功的邮件被标记已读")
+        "长轮询结束：共 %d 轮，%s"
+        % (cycle, summary_text(totals, cfg["dry_run"]))
     )
-    return 1 if failed else 0
+    return 1 if totals["failed"] else 0
 
 
 def self_test():
@@ -369,6 +469,7 @@ def self_test():
     assert subject_allowed("作业查询码", "查询码"), "keyword subject rejected"
     assert not subject_allowed("你好", "查询码"), "subject without keyword accepted"
     assert subject_allowed("随便什么主题", "-"), "disabled keyword blocked"
+    assert summary_text({"scanned": 1, "replied": 1, "skipped": 0, "failed": 0}, False)
     print("self-test OK")
     return 0
 
@@ -402,7 +503,9 @@ def main():
     ap.add_argument("--simulate-from", help="模拟某个学生邮箱，验证匹配与回信模板")
     ap.add_argument("--show-code", action="store_true", help="模拟时显示真实查询码")
     ap.add_argument("--dry-run", action="store_true", help="只检查邮件，不发送、不标记已读")
-    ap.add_argument("--max-per-run", type=int, default=0, help="单次最多处理多少封未读邮件")
+    ap.add_argument("--max-per-run", type=int, default=0, help="每轮最多处理多少封未读邮件")
+    ap.add_argument("--watch-minutes", type=int, default=0, help="长轮询时长（分钟），0 表示只检查一遍")
+    ap.add_argument("--interval-seconds", type=int, default=60, help="长轮询每轮之间的间隔秒数")
     args = ap.parse_args()
 
     if args.self_test:

@@ -2,8 +2,12 @@ name: Query code mail bot
 
 on:
   schedule:
-    # 每 5 分钟检查一次新邮件（GitHub 的定时任务可能有几分钟延迟）
-    - cron: "*/5 * * * *"
+    # 每小时兜底启动一次；真正的连续检查由运行内的长轮询和自触发完成
+    - cron: "2 * * * *"
+  push:
+    paths:
+      - ".github/workflows/query-code-mailer.yml"
+      - "scripts/mail_query_bot.py"
   workflow_dispatch:
     inputs:
       dry_run:
@@ -17,12 +21,12 @@ permissions:
 
 concurrency:
   group: query-code-mail-bot
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   mail-bot:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 62
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -79,7 +83,13 @@ jobs:
           MAIL_SUBJECT_KEYWORD: ${{ vars.MAIL_SUBJECT_KEYWORD || '查询码' }}
           MAIL_BOT_END_DATE: ${{ vars.MAIL_BOT_END_DATE || '2027-01-15' }}
           MAIL_BOT_DRY_RUN: ${{ inputs.dry_run }}
-        run: python scripts/mail_query_bot.py
+        run: python scripts/mail_query_bot.py --watch-minutes 55 --interval-seconds 60
+
+      - name: Trigger next run
+        if: success() && steps.cfg.outputs.configured == 'true' && steps.deadline.outputs.expired != 'true' && (github.event_name != 'workflow_dispatch' || inputs.dry_run != true)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run query-code-mailer.yml --ref main --repo "${{ github.repository }}"
 
       - name: Disable workflow after deadline
         if: steps.deadline.outputs.expired == 'true'
