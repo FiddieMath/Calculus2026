@@ -109,6 +109,20 @@ https://fiddiemath.github.io/Calculus2026/
 6. 参考答案：把答案写成 `answers/hw04.md`（Markdown + LaTeX），并确保 `meta.json` 中该作业的 `"answer": { "published": true }`。
 7. 推送到 GitHub，学生刷新即可看到。
 
+### 截止时间规则
+
+每次作业的 `due` 统一取**布置后的下周五 12:00**（北京时间；周五布置即 7 天后的周五），写成带时区的 ISO 字符串，例如 2026-09-11 布置：
+
+```json
+{ "slug": "hw04", "title": "第四次作业", "due": "2026-09-25T12:00:00+08:00", "content": { "published": true } }
+```
+
+2026 秋第 1–3 次作业均为 2026-09-18 12:00。题目一般在教材习题里选，题源见下方“教材习题”一节。
+
+### 教材习题
+
+教材《微积分 I（第二版）》全部习题已转成 Markdown，放在助教工作区 `E:\TA\textbook-exercises\`（`习题1.1.md` … `习题4.3.md`，共 14 节 281 题），老师给出题号后可直接取题写进 `problems/hwNN.md`。
+
 如果老师希望 Codex 代跑第 4–5 步（把 CSV 与答案发给 Codex 即可），也可以使用命令行工具：
 
 ```text

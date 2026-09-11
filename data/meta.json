@@ -33,9 +33,10 @@
   "assignments": [
     {
       "slug": "hw01",
-      "title": "第一次作业：函数与极限",
+      "title": "第一次作业",
+      "due": "2026-09-18T12:00:00+08:00",
       "content": {
-        "published": false
+        "published": true
       },
       "answer": {
         "published": false,
@@ -44,11 +45,15 @@
     },
     {
       "slug": "hw02",
-      "content": { "published": false },
+      "title": "第二次作业",
+      "due": "2026-09-18T12:00:00+08:00",
+      "content": { "published": true },
       "answer": { "published": false, "requiresSubmission": false }
     },
     {
       "slug": "hw03",
+      "title": "第三次作业",
+      "due": "2026-09-18T12:00:00+08:00",
       "content": { "published": false },
       "answer": { "published": false, "requiresSubmission": false }
     },
