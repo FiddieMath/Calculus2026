@@ -156,11 +156,11 @@ node scripts/publish-cli.cjs --classbook classbook.json --keys 查询码.csv --g
 
 1. 登录南大邮箱网页版，进入“设置 / 客户端（IMAP/SMTP）收发”相关页面，开启 IMAP 与 SMTP 服务。
 2. 生成“客户端授权码”（有的页面叫“专用密码”），**不要使用邮箱登录密码**。
-3. 记录服务器地址。脚本默认使用：
-   - 收信 `imap.smail.nju.edu.cn`，端口 `993`，SSL；
-   - 发信 `smtp.smail.nju.edu.cn`，端口 `465`，SSL。
+3. 确认服务器地址。南大学生邮箱由腾讯企业邮箱提供服务，截图中的设置为：
+   - 收信 `imap.exmail.qq.com`，端口 `993`，SSL；
+   - 发信 `smtp.exmail.qq.com`，端口 `465`，SSL。
 
-   如果学校帮助页给出的地址或端口不同，请在仓库 Variables 中设置 `IMAP_HOST`、`IMAP_PORT`、`SMTP_HOST`、`SMTP_PORT`、`SMTP_SECURITY`（值为 `ssl` 或 `starttls`）。
+   机器人已按这组地址作为默认值；如果学校帮助页给出的地址或端口不同，请在仓库 Variables 中设置 `IMAP_HOST`、`IMAP_PORT`、`SMTP_HOST`、`SMTP_PORT`、`SMTP_SECURITY`（值为 `ssl` 或 `starttls`）。
 
 ### 9.2 配置 GitHub Secrets
 

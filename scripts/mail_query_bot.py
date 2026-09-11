@@ -173,9 +173,9 @@ def run_bot(args):
     cfg = {
         "mail_user": env("MAIL_USER"),
         "auth_code": env("MAIL_AUTH_CODE"),
-        "imap_host": env("IMAP_HOST", "imap.smail.nju.edu.cn"),
+        "imap_host": env("IMAP_HOST", "imap.exmail.qq.com"),
         "imap_port": env_int("IMAP_PORT", 993),
-        "smtp_host": env("SMTP_HOST", "smtp.smail.nju.edu.cn"),
+        "smtp_host": env("SMTP_HOST", "smtp.exmail.qq.com"),
         "smtp_port": env_int("SMTP_PORT", 465),
         "smtp_security": env("SMTP_SECURITY", "ssl").lower(),
         "allowed_domain": env("MAIL_ALLOWED_DOMAIN", "smail.nju.edu.cn").lower(),
