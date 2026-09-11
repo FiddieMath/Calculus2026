@@ -76,6 +76,7 @@ jobs:
           MAIL_ALLOWED_DOMAIN: ${{ vars.MAIL_ALLOWED_DOMAIN }}
           MAIL_COURSE_NAME: ${{ vars.MAIL_COURSE_NAME }}
           MAIL_SITE_URL: ${{ vars.MAIL_SITE_URL }}
+          MAIL_SUBJECT_KEYWORD: ${{ vars.MAIL_SUBJECT_KEYWORD || '查询码' }}
           MAIL_BOT_END_DATE: ${{ vars.MAIL_BOT_END_DATE || '2027-01-15' }}
           MAIL_BOT_DRY_RUN: ${{ inputs.dry_run }}
         run: python scripts/mail_query_bot.py

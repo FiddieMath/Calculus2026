@@ -31,7 +31,7 @@ import smtplib
 import ssl
 import sys
 from datetime import datetime, timedelta, timezone
-from email import message_from_bytes
+from email import message_from_bytes, policy
 from email.message import EmailMessage
 from email.utils import formataddr, formatdate, make_msgid, parseaddr
 
@@ -151,6 +151,13 @@ def is_auto_or_reply(msg):
     return False
 
 
+def subject_allowed(subject, keyword):
+    """主题校验：keyword 为空或 "-" 时不限制，否则主题必须包含该关键词。"""
+    if not keyword or keyword == "-":
+        return True
+    return keyword in (subject or "")
+
+
 def build_reply(mail_user, to_addr, name, code, site_url, course_name):
     msg = EmailMessage()
     msg["From"] = formataddr(("作业查分台（自动回复）", mail_user))
@@ -201,6 +208,7 @@ def run_bot(args):
         "allowed_domain": env("MAIL_ALLOWED_DOMAIN", "smail.nju.edu.cn").lower(),
         "site_url": env("MAIL_SITE_URL", "https://fiddiemath.github.io/Calculus2026/"),
         "course_name": env("MAIL_COURSE_NAME", "微积分I"),
+        "subject_keyword": env("MAIL_SUBJECT_KEYWORD", "查询码"),
         "end_date": env("MAIL_BOT_END_DATE", ""),
         "max_per_run": args.max_per_run or env_int("MAIL_BOT_MAX_PER_RUN", 200),
         "dry_run": args.dry_run or env("MAIL_BOT_DRY_RUN", "").lower() in ("1", "true", "yes"),
@@ -256,7 +264,7 @@ def run_bot(args):
                     skipped += 1
                     print("跳过：邮件头读取失败")
                     continue
-                msg = message_from_bytes(msg_data[0][1])
+                msg = message_from_bytes(msg_data[0][1], policy=policy.default)
                 sender = sender_address(msg)
                 match = sid_re.match(sender)
 
@@ -275,6 +283,14 @@ def run_bot(args):
                 if is_auto_or_reply(msg):
                     skipped += 1
                     print("跳过：这封邮件看起来是自动回复或 Re: 回复邮件")
+                    continue
+                subject = str(msg.get("Subject") or "")
+                if not subject_allowed(subject, cfg["subject_keyword"]):
+                    skipped += 1
+                    print(
+                        "跳过：邮件主题未包含“%s”（主题内容已隐藏）"
+                        % cfg["subject_keyword"]
+                    )
                     continue
 
                 sid = match.group("sid")
@@ -350,6 +366,9 @@ def self_test():
     body = msg.get_content()
     assert "123456" in body and "查询入口" in body, "reply body incomplete"
     assert msg["To"] == "221900153@smail.nju.edu.cn", "reply target wrong"
+    assert subject_allowed("作业查询码", "查询码"), "keyword subject rejected"
+    assert not subject_allowed("你好", "查询码"), "subject without keyword accepted"
+    assert subject_allowed("随便什么主题", "-"), "disabled keyword blocked"
     print("self-test OK")
     return 0
 
