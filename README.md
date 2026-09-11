@@ -177,7 +177,7 @@ node scripts/publish-cli.cjs --classbook classbook.json --keys 查询码.csv --g
 生成 `QUERY_KEYS_B64` 的方法（在本机 PowerShell 中执行，结果会复制到剪贴板）：
 
 ```powershell
-[Convert]::ToBase64String([IO.File]::ReadAllBytes("E:\微积分\2026秋\keys.csv")) | Set-Clipboard
+[Convert]::ToBase64String([IO.File]::ReadAllBytes("E:\TA\2026Autumn\keys.csv")) | Set-Clipboard
 ```
 
 也可以改用 `QUERY_KEYS_CSV` 并粘贴 `keys.csv` 的全部内容。授权码与查询码表都不要发到聊天里，也不要提交到仓库。

@@ -8,8 +8,8 @@
 
 用法示例：
   python scripts/init_from_roster.py ^
-      --input "E:\\微积分\\2026秋\\点名册.xlsx" ^
-      --outdir "E:\\微积分\\2026秋" ^
+      --input "E:\\TA\\2026Autumn\\点名册 (3).xlsx" ^
+      --outdir "E:\\TA\\2026Autumn" ^
       --code random6
 
 运行后请勿把 classbook.json / keys.csv / 查询码*.csv 上传到公开仓库。

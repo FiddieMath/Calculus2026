@@ -16,7 +16,7 @@
   python scripts/mail_query_bot.py --self-test
 
 本地模拟某个学生查询（不联网、不发送）：
-  python scripts/mail_query_bot.py --keys-file "E:\\微积分\\2026秋\\keys.csv" \
+  python scripts/mail_query_bot.py --keys-file "E:\\TA\\2026Autumn\\keys.csv" \
       --simulate-from 221900153@smail.nju.edu.cn
 """
 
