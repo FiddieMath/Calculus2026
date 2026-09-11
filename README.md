@@ -36,8 +36,12 @@
 ├─ tools/
 │  └─ publish.html            # 教师端发布工具（浏览器直接打开即可用）
 ├─ scripts/
-│  └─ publish-cli.cjs         # 命令行版发布工具（供 Codex 自动批改流程使用）
-└─ .github/workflows/pages.yml
+│  ├─ publish-cli.cjs         # 命令行版发布工具（供 Codex 自动批改流程使用）
+│  ├─ init_from_roster.py     # 从点名册生成查询码与台账（支持补选学生增量更新）
+│  └─ mail_query_bot.py       # 学生用学校邮箱自助查询查询码的邮件机器人
+└─ .github/workflows/
+   ├─ pages.yml               # 网页自动部署
+   └─ query-code-mailer.yml   # 每 5 分钟运行邮件机器人
 ```
 
 ## 3. 部署（只需做一次）
@@ -123,7 +127,7 @@ node scripts/publish-cli.cjs --classbook classbook.json --keys 查询码.csv --g
 ## 7. 常见问题
 
 **学生忘记查询码？**
-默认查询码就是学号；若学生曾私下改过又忘记，老师在 `tools/publish.html` 的“② 修改查询码”中为该生设置新码，重新发布 `records.json` 并把新码私发给他。
+2026 秋在册学生的查询码是随机 6 位（在老师的查询码表里，也可通过学校邮箱自助查询，见第 9 节）；补选学生默认查询码＝学号。若学生改过又忘记，老师在 `tools/publish.html` 的“② 修改查询码”中为该生设置新码，重新发布 `records.json` 并把新码私发给他。
 
 **公式没有显示？**
 公式组件已内置在 `assets/vendor/`，正常情况无需外网。若显示异常，先强制刷新（Ctrl+F5）再试。
@@ -140,9 +144,56 @@ node scripts/publish-cli.cjs --classbook classbook.json --keys 查询码.csv --g
 
 界面采用简约的纸面风格，所有资源本地化，不依赖外网字体/图标；主页不设公告与多余装饰，作业信息集中在两张表格中。
 
-演示账号（`demo` 为 `true` 时有效）：
+演示账号仅在 `data/meta.json` 中 `"demo": true` 时有效；2026 秋正式班级已设为 `false`，学生一律使用自己的学号与查询码。
 
-```text
-学号：20260001
-查询码：20260001
+---
+
+## 9. 学生用学校邮箱自助查询查询码（GitHub Actions）
+
+原理：GitHub Actions 每 5 分钟检查一次查询邮箱的新邮件；若发件地址严格匹配 `学号@smail.nju.edu.cn`，且该学号在本班查询码表中，就自动回复该学生自己的查询码。查询码表只保存在 GitHub Secret 中，**不进入公开仓库**。
+
+### 9.1 在南大邮箱开启客户端服务
+
+1. 登录南大邮箱网页版，进入“设置 / 客户端（IMAP/SMTP）收发”相关页面，开启 IMAP 与 SMTP 服务。
+2. 生成“客户端授权码”（有的页面叫“专用密码”），**不要使用邮箱登录密码**。
+3. 记录服务器地址。脚本默认使用：
+   - 收信 `imap.smail.nju.edu.cn`，端口 `993`，SSL；
+   - 发信 `smtp.smail.nju.edu.cn`，端口 `465`，SSL。
+
+   如果学校帮助页给出的地址或端口不同，请在仓库 Variables 中设置 `IMAP_HOST`、`IMAP_PORT`、`SMTP_HOST`、`SMTP_PORT`、`SMTP_SECURITY`（值为 `ssl` 或 `starttls`）。
+
+### 9.2 配置 GitHub Secrets
+
+仓库 → Settings → Secrets and variables → Actions → **Secrets**：
+
+| Secret | 内容 |
+| --- | --- |
+| `MAIL_USER` | 查询邮箱地址（老师的南大邮箱） |
+| `MAIL_AUTH_CODE` | 上一步生成的客户端授权码 |
+| `QUERY_KEYS_B64` | 查询码表 `keys.csv` 的 Base64（推荐） |
+
+生成 `QUERY_KEYS_B64` 的方法（在本机 PowerShell 中执行，结果会复制到剪贴板）：
+
+```powershell
+[Convert]::ToBase64String([IO.File]::ReadAllBytes("E:\微积分\2026秋\keys.csv")) | Set-Clipboard
 ```
+
+也可以改用 `QUERY_KEYS_CSV` 并粘贴 `keys.csv` 的全部内容。授权码与查询码表都不要发到聊天里，也不要提交到仓库。
+
+可选 **Variables**（默认值不符合时才需要）：`IMAP_HOST`、`IMAP_PORT`、`SMTP_HOST`、`SMTP_PORT`、`SMTP_SECURITY`、`MAIL_ALLOWED_DOMAIN`、`MAIL_COURSE_NAME`、`MAIL_SITE_URL`。
+
+### 9.3 先演练，再正式启用
+
+1. 打开仓库 Actions → `Query code mail bot` → Run workflow，先勾选 **dry_run**（只检查邮件，不发送、不标记已读）。
+2. 用一份学校邮箱（或请学生协助）发一封测试邮件，主题随意。日志里应出现 `DRY-RUN 将回复：22*****53` 这类打码记录；日志不会显示学号全貌和查询码。
+3. 确认无误后，再次运行工作流、不勾 dry_run，或直接等下一次定时任务。之后学生发邮件即可在几分钟内收到自己的查询码。
+
+### 9.4 注意事项
+
+- 建议这个邮箱只用于接收查询邮件；老师不要在网页邮箱里手动点开待处理邮件（点开会标记“已读”，机器人会跳过）。
+- 已成功回复的邮件会被标记为已读，不会重复回复；如果发信临时失败，邮件保持未读，下一次自动重试（偶尔可能重复收到一封回信）。
+- 机器人只处理“直接发给查询邮箱”的邮件，并跳过自动回复、退信、`Re:` 回复等，避免邮件循环。
+- 公开仓库的 Actions 日志是公开的，机器人只输出处理数量与打码学号，不输出查询码。
+- GitHub 的定时任务可能有几分钟延迟；仓库连续 60 天没有任何提交或操作时，定时任务会被暂停，推送一次即可恢复。
+- 如果南大邮箱禁止第三方客户端或拦截异地登录（Actions 运行在国外服务器），登录会失败。此时可改用本地电脑运行同一个脚本，或换一个允许客户端收发的邮箱，把服务器地址填进 Variables。
+- 查询码只有 6 位数字，这套方式适合“学生用自己学号邮箱查自己的码”，不要把它当作强密码使用；查询码表继续只保存在你本机与 GitHub Secret 中。

@@ -1,0 +1,65 @@
+name: Query code mail bot
+
+on:
+  schedule:
+    # 每 5 分钟检查一次新邮件（GitHub 的定时任务可能有几分钟延迟）
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "只演练：只检查邮件，不发送、不标记已读"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: query-code-mail-bot
+  cancel-in-progress: false
+
+jobs:
+  mail-bot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Check configuration
+        id: cfg
+        env:
+          MAIL_USER: ${{ secrets.MAIL_USER }}
+          MAIL_AUTH_CODE: ${{ secrets.MAIL_AUTH_CODE }}
+          QUERY_KEYS_CSV: ${{ secrets.QUERY_KEYS_CSV }}
+          QUERY_KEYS_B64: ${{ secrets.QUERY_KEYS_B64 }}
+        run: |
+          if [ -z "$MAIL_USER" ] || [ -z "$MAIL_AUTH_CODE" ] || { [ -z "$QUERY_KEYS_CSV" ] && [ -z "$QUERY_KEYS_B64" ]; }; then
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::尚未配置邮箱 Secret（MAIL_USER / MAIL_AUTH_CODE / QUERY_KEYS_B64），本次跳过。"
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Run mail bot
+        if: steps.cfg.outputs.configured == 'true'
+        env:
+          MAIL_USER: ${{ secrets.MAIL_USER }}
+          MAIL_AUTH_CODE: ${{ secrets.MAIL_AUTH_CODE }}
+          QUERY_KEYS_CSV: ${{ secrets.QUERY_KEYS_CSV }}
+          QUERY_KEYS_B64: ${{ secrets.QUERY_KEYS_B64 }}
+          IMAP_HOST: ${{ vars.IMAP_HOST }}
+          IMAP_PORT: ${{ vars.IMAP_PORT }}
+          SMTP_HOST: ${{ vars.SMTP_HOST }}
+          SMTP_PORT: ${{ vars.SMTP_PORT }}
+          SMTP_SECURITY: ${{ vars.SMTP_SECURITY }}
+          MAIL_ALLOWED_DOMAIN: ${{ vars.MAIL_ALLOWED_DOMAIN }}
+          MAIL_COURSE_NAME: ${{ vars.MAIL_COURSE_NAME }}
+          MAIL_SITE_URL: ${{ vars.MAIL_SITE_URL }}
+          MAIL_BOT_DRY_RUN: ${{ inputs.dry_run }}
+        run: python scripts/mail_query_bot.py
