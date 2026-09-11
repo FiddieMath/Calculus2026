@@ -13,6 +13,7 @@ on:
 
 permissions:
   contents: read
+  actions: write
 
 concurrency:
   group: query-code-mail-bot
@@ -46,8 +47,22 @@ jobs:
             echo "configured=true" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Check deadline
+        id: deadline
+        env:
+          END_DATE: ${{ vars.MAIL_BOT_END_DATE || '2027-01-15' }}
+        run: |
+          today=$(TZ=Asia/Shanghai date +%F)
+          echo "今天：$today，截止日期：$END_DATE"
+          if [[ "$today" > "$END_DATE" ]]; then
+            echo "expired=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::已过邮件机器人截止日期 $END_DATE，机器人停止工作。"
+          else
+            echo "expired=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Run mail bot
-        if: steps.cfg.outputs.configured == 'true'
+        if: steps.cfg.outputs.configured == 'true' && steps.deadline.outputs.expired != 'true'
         env:
           MAIL_USER: ${{ secrets.MAIL_USER }}
           MAIL_AUTH_CODE: ${{ secrets.MAIL_AUTH_CODE }}
@@ -61,5 +76,14 @@ jobs:
           MAIL_ALLOWED_DOMAIN: ${{ vars.MAIL_ALLOWED_DOMAIN }}
           MAIL_COURSE_NAME: ${{ vars.MAIL_COURSE_NAME }}
           MAIL_SITE_URL: ${{ vars.MAIL_SITE_URL }}
+          MAIL_BOT_END_DATE: ${{ vars.MAIL_BOT_END_DATE || '2027-01-15' }}
           MAIL_BOT_DRY_RUN: ${{ inputs.dry_run }}
         run: python scripts/mail_query_bot.py
+
+      - name: Disable workflow after deadline
+        if: steps.deadline.outputs.expired == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh workflow disable query-code-mailer.yml || \
+            echo "::warning::自动停用失败，请在 Actions 页面手动停用 Query code mail bot。"

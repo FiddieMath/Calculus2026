@@ -30,7 +30,7 @@ import re
 import smtplib
 import ssl
 import sys
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from email import message_from_bytes
 from email.message import EmailMessage
 from email.utils import formataddr, formatdate, make_msgid, parseaddr
@@ -85,6 +85,15 @@ def masked_sid(sid):
     if len(sid) <= 4:
         return "*" * len(sid)
     return sid[:2] + "*" * (len(sid) - 4) + sid[-2:]
+
+
+def shanghai_today():
+    try:
+        from zoneinfo import ZoneInfo
+
+        return datetime.now(ZoneInfo("Asia/Shanghai")).date()
+    except Exception:
+        return (datetime.now(timezone.utc) + timedelta(hours=8)).date()
 
 
 def mask_addr(addr):
@@ -192,9 +201,13 @@ def run_bot(args):
         "allowed_domain": env("MAIL_ALLOWED_DOMAIN", "smail.nju.edu.cn").lower(),
         "site_url": env("MAIL_SITE_URL", "https://fiddiemath.github.io/Calculus2026/"),
         "course_name": env("MAIL_COURSE_NAME", "微积分I"),
+        "end_date": env("MAIL_BOT_END_DATE", ""),
         "max_per_run": args.max_per_run or env_int("MAIL_BOT_MAX_PER_RUN", 200),
         "dry_run": args.dry_run or env("MAIL_BOT_DRY_RUN", "").lower() in ("1", "true", "yes"),
     }
+    if cfg["end_date"] and shanghai_today().isoformat() > cfg["end_date"]:
+        print("已过邮件机器人截止日期 %s，本次不做任何操作。" % cfg["end_date"])
+        return 0
     if not cfg["mail_user"] or not cfg["auth_code"]:
         raise SystemExit("缺少 MAIL_USER 或 MAIL_AUTH_CODE（请配置 GitHub Secrets）。")
 
