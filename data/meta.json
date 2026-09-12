@@ -54,7 +54,7 @@
       "slug": "hw03",
       "title": "第三次作业",
       "due": "2026-09-18T12:00:00+08:00",
-      "content": { "published": false },
+      "content": { "published": true },
       "answer": { "published": false, "requiresSubmission": false }
     },
     {
