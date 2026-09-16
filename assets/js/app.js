@@ -226,11 +226,12 @@
             st = announced ? "未交" : "未布置";
             stCls = announced ? "st-missing" : "st-pending";
           }
+          var isNumScore = typeof rec.score === "number";
           var hasScore =
             (rec.status === "graded" || rec.status === "late_graded") &&
-            typeof rec.score === "number";
+            (isNumScore || (typeof rec.score === "string" && rec.score !== ""));
           var score = hasScore
-            ? esc(rec.score) + (typeof rec.max === "number" ? " / " + esc(rec.max) : "")
+            ? esc(rec.score) + (isNumScore && typeof rec.max === "number" ? " / " + esc(rec.max) : "")
             : "—";
           var comment = rec.comment && rec.comment.trim() ? esc(rec.comment) : "—";
           return (

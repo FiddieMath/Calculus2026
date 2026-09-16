@@ -109,15 +109,18 @@
       const scoreRaw = String(r[2] || "").trim();
       const maxRaw = String(r[3] || "").trim();
       const comment = String(r[4] || "").trim();
-      const score = scoreRaw === "" ? NaN : Number(scoreRaw);
+      // 得分可以是数字，也可以是等级文字（如 A / B / C）
+      const numScore = scoreRaw === "" ? NaN : Number(scoreRaw);
+      const score = scoreRaw === "" ? null : Number.isNaN(numScore) ? scoreRaw : numScore;
       const max = maxRaw === "" ? NaN : Number(maxRaw);
       let status = normalizeStatus(statusRaw);
-      if (!Number.isNaN(score)) {
+      if (score !== null) {
         status = status === "late" ? "late_graded" : "graded";
       }
       const rec = { status: status };
-      if (!Number.isNaN(score)) rec.score = score;
-      if (!Number.isNaN(max)) rec.max = max;
+      if (score !== null) rec.score = score;
+      // 只有数字分才配「满分」；等级制不显示分母
+      if (typeof score === "number" && !Number.isNaN(max)) rec.max = max;
       if (comment) rec.comment = comment;
       out.push({ sid: sid, record: rec });
     }
