@@ -2,8 +2,9 @@ name: Query code mail bot
 
 on:
   schedule:
-    # 每小时兜底启动一次；真正的连续检查由运行内的长轮询和自触发完成
-    - cron: "2 * * * *"
+    # 每 30 分钟兜底启动一次；连续检查由运行内的长轮询和自触发完成。
+    # 若接力链中断，下一次定时任务会自动补上（GitHub 的定时任务可能有延迟）。
+    - cron: "*/30 * * * *"
   push:
     paths:
       - ".github/workflows/query-code-mailer.yml"
@@ -21,7 +22,8 @@ permissions:
 
 concurrency:
   group: query-code-mail-bot
-  cancel-in-progress: true
+  # 不取消正在运行的长轮询；新的运行排队等待，避免频繁中断
+  cancel-in-progress: false
 
 jobs:
   mail-bot:
@@ -86,10 +88,12 @@ jobs:
         run: python scripts/mail_query_bot.py --watch-minutes 55 --interval-seconds 60
 
       - name: Trigger next run
-        if: success() && steps.cfg.outputs.configured == 'true' && steps.deadline.outputs.expired != 'true' && (github.event_name != 'workflow_dispatch' || inputs.dry_run != true)
+        if: always() && steps.cfg.outputs.configured == 'true' && steps.deadline.outputs.expired != 'true' && (github.event_name != 'workflow_dispatch' || inputs.dry_run != true)
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh workflow run query-code-mailer.yml --ref main --repo "${{ github.repository }}"
+        run: |
+          gh workflow run query-code-mailer.yml --ref main --repo "${{ github.repository }}" || \
+            echo "::warning::触发下一次运行失败，等待下一次定时兜底。"
 
       - name: Disable workflow after deadline
         if: steps.deadline.outputs.expired == 'true'

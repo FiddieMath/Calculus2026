@@ -204,7 +204,9 @@ def smtp_connect(cfg):
 
 def open_imap(cfg):
     context = ssl.create_default_context()
-    imap = imaplib.IMAP4_SSL(cfg["imap_host"], cfg["imap_port"], ssl_context=context)
+    imap = imaplib.IMAP4_SSL(
+        cfg["imap_host"], cfg["imap_port"], ssl_context=context, timeout=30
+    )
     imap.login(cfg["mail_user"], cfg["auth_code"])
     imap.select("INBOX")
     return imap
@@ -401,6 +403,7 @@ def run_bot(args):
     skip_logged = set()
     cycle = 0
     quiet_cycles = 0
+    successful_cycles = 0
     print("进入长轮询：最多 %d 分钟，每 %d 秒检查一次。" % (watch_minutes, interval))
     try:
         while True:
@@ -409,6 +412,7 @@ def run_bot(args):
                 if imap is None:
                     imap = open_imap(cfg)
                 counts, smtp = process_unread(imap, cfg, keys, sid_re, skip_logged, smtp)
+                successful_cycles += 1
                 for key in totals:
                     totals[key] += counts[key]
                 if counts["replied"] or counts["failed"]:
@@ -448,7 +452,16 @@ def run_bot(args):
         "长轮询结束：共 %d 轮，%s"
         % (cycle, summary_text(totals, cfg["dry_run"]))
     )
-    return 1 if totals["failed"] else 0
+    if totals["failed"]:
+        if successful_cycles:
+            print(
+                "提示：本次有 %d 次瞬时失败，但至少有 %d 轮成功；"
+                "接力会继续，下一轮会自动重试。"
+                % (totals["failed"], successful_cycles)
+            )
+            return 0
+        return 1
+    return 0
 
 
 def self_test():
