@@ -19,7 +19,10 @@
   python scripts/mail_query_bot.py --keys-file "E:\\TA\\2026Autumn\\keys.csv" \
       --simulate-from 221900153@smail.nju.edu.cn
 
-长轮询模式（GitHub Actions 使用）：
+单次检查模式（GitHub Actions 每 5 分钟调用一次，约 15～30 秒结束）：
+  python scripts/mail_query_bot.py
+
+可选的长轮询模式（手动执行时使用，GitHub Actions 不使用）：
   python scripts/mail_query_bot.py --watch-minutes 55 --interval-seconds 60
 """
 
@@ -393,7 +396,12 @@ def run_bot(args):
             close_quietly(smtp)
             close_quietly(imap)
         print("本次完成：" + summary_text(counts, cfg["dry_run"]))
-        return 1 if counts["failed"] else 0
+        if counts["failed"]:
+            print(
+                "提示：本次有 %d 封处理失败，未成功的邮件会保持未读，"
+                "下一次运行会自动重试。" % counts["failed"]
+            )
+        return 0
 
     totals = {"scanned": 0, "replied": 0, "skipped": 0, "failed": 0}
     start_at = time.monotonic()
