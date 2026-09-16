@@ -19,11 +19,12 @@
   python scripts/mail_query_bot.py --keys-file "E:\\TA\\2026Autumn\\keys.csv" \
       --simulate-from 221900153@smail.nju.edu.cn
 
-长轮询模式（GitHub Actions 使用；一次运行检查 55 分钟，结束后自动接力）：
-  python scripts/mail_query_bot.py --watch-minutes 55 --interval-seconds 60
-
-单次检查模式（手动执行时使用，检查一遍即结束）：
+单次检查模式（GitHub Actions 使用；由 cron-job.org 每 5 分钟触发一次，
+一次运行约 15～30 秒，检查一遍就结束）：
   python scripts/mail_query_bot.py
+
+可选的长轮询模式（手动执行时使用，GitHub Actions 不使用）：
+  python scripts/mail_query_bot.py --watch-minutes 55 --interval-seconds 60
 """
 
 import argparse
