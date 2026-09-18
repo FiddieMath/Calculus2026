@@ -39,7 +39,7 @@
         "published": true
       },
       "answer": {
-        "published": false,
+        "published": true,
         "requiresSubmission": false
       }
     },
@@ -48,14 +48,14 @@
       "title": "第二次作业",
       "due": "2026-09-18T12:00:00+08:00",
       "content": { "published": true },
-      "answer": { "published": false, "requiresSubmission": false }
+      "answer": { "published": true, "requiresSubmission": false }
     },
     {
       "slug": "hw03",
       "title": "第三次作业",
       "due": "2026-09-18T12:00:00+08:00",
       "content": { "published": true },
-      "answer": { "published": false, "requiresSubmission": false }
+      "answer": { "published": true, "requiresSubmission": false }
     },
     {
       "slug": "hw04",
