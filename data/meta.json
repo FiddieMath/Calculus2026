@@ -62,7 +62,7 @@
       "title": "第四次作业",
       "due": "2026-09-25T12:00:00+08:00",
       "content": { "published": true },
-      "answer": { "published": false, "requiresSubmission": false }
+      "answer": { "published": true, "requiresSubmission": false }
     },
     {
       "slug": "hw05",
