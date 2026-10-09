@@ -94,7 +94,7 @@
   function normalizeStatus(raw) {
     const s = String(raw || "").trim();
     if (/未交|缺交|missing/i.test(s)) return "missing";
-    if (/迟交|late/i.test(s)) return "late";
+    if (/补交|迟交|late/i.test(s)) return "late";
     return "submitted";
   }
 

@@ -18,9 +18,9 @@
   var STATUS_TEXT = {
     missing: "未交",
     submitted: "已交 · 待批改",
-    late: "迟交 · 待批改",
+    late: "补交 · 待批改",
     graded: "已批改",
-    late_graded: "迟交 · 已批改"
+    late_graded: "补交 · 已批改"
   };
   var STATUS_CLASS = {
     missing: "st-missing",
