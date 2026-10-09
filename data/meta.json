@@ -73,7 +73,9 @@
     },
     {
       "slug": "hw06",
-      "content": { "published": false },
+      "title": "第六次作业",
+      "due": "2026-10-16T12:00:00+08:00",
+      "content": { "published": true },
       "answer": { "published": false, "requiresSubmission": false }
     },
     {
