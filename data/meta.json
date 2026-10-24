@@ -87,7 +87,9 @@
     },
     {
       "slug": "hw08",
-      "content": { "published": false },
+      "title": "第八次作业",
+      "due": "2026-10-30T12:00:00+08:00",
+      "content": { "published": true },
       "answer": { "published": false, "requiresSubmission": false }
     },
     {
