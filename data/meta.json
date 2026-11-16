@@ -101,7 +101,9 @@
     },
     {
       "slug": "hw10",
-      "content": { "published": false },
+      "title": "第十次作业",
+      "due": "2026-11-27T12:00:00+08:00",
+      "content": { "published": true },
       "answer": { "published": false, "requiresSubmission": false }
     },
     {
